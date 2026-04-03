@@ -1,15 +1,11 @@
 """USGS Water Services API client for gauge readings."""
 
-import os
 from datetime import datetime, timezone
 
 import httpx
-from dotenv import load_dotenv
-from supabase import create_client
 
+from ...db import get_connection
 from ..config import USGS_BASE_URL, USGS_PARAMS, USGS_STATIONS
-
-load_dotenv()
 
 # USGS parameter codes
 PARAM_FLOW = "00060"
@@ -71,24 +67,26 @@ def fetch_gauge_data() -> list[dict]:
 
 
 def save_gauge_readings(readings: list[dict]) -> int:
-    """Save gauge readings to Supabase, resolving water_body_id from slug."""
-    supabase = create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_KEY"],
-    )
+    """Save gauge readings to the database, resolving water_body_id from slug."""
+    conn = get_connection()
+    cur = conn.cursor()
 
     # Fetch water body IDs by slug
-    slug_to_id: dict[str, str] = {}
-    result = supabase.table("water_bodies").select("id, slug").execute()
-    for row in result.data:
-        slug_to_id[row["slug"]] = row["id"]
+    cur.execute("SELECT id, slug FROM water_bodies")
+    slug_to_id: dict[str, str] = {row[1]: str(row[0]) for row in cur.fetchall()}
 
-    rows = []
+    count = 0
     for r in readings:
         water_body_id = slug_to_id.get(r["water_body_slug"])
         if not water_body_id:
             continue
-        rows.append(
+
+        cur.execute(
+            """
+            INSERT INTO gauge_readings (station_id, water_body_id, measured_at, flow_cfs, gauge_height_ft, water_temp_f, fetched_at)
+            VALUES (%(station_id)s, %(water_body_id)s, %(measured_at)s, %(flow_cfs)s, %(gauge_height_ft)s, %(water_temp_f)s, %(fetched_at)s)
+            ON CONFLICT (station_id, measured_at) DO NOTHING
+            """,
             {
                 "station_id": r["station_id"],
                 "water_body_id": water_body_id,
@@ -97,15 +95,14 @@ def save_gauge_readings(readings: list[dict]) -> int:
                 "gauge_height_ft": r["gauge_height_ft"],
                 "water_temp_f": r["water_temp_f"],
                 "fetched_at": r["fetched_at"],
-            }
+            },
         )
+        count += 1
 
-    if rows:
-        supabase.table("gauge_readings").upsert(
-            rows, on_conflict="station_id,measured_at"
-        ).execute()
-
-    return len(rows)
+    conn.commit()
+    cur.close()
+    conn.close()
+    return count
 
 
 if __name__ == "__main__":

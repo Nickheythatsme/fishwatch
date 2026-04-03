@@ -3,13 +3,14 @@
 Processes unprocessed raw reports through Claude to extract structured data.
 """
 
+import json
 import os
 
 import anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from supabase import create_client
 
+from ..db import get_connection
 from .parser import parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 
@@ -17,27 +18,31 @@ load_dotenv()
 
 
 def run() -> None:
-    supabase = create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_KEY"],
-    )
+    conn = get_connection()
+    cur = conn.cursor()
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     # Fetch unprocessed reports
-    result = supabase.table("raw_reports").select("*").eq("is_processed", False).execute()
-    reports = result.data or []
+    cur.execute(
+        "SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE"
+    )
+    reports = [
+        {"id": str(row[0]), "source_name": row[1], "raw_html": row[2]}
+        for row in cur.fetchall()
+    ]
 
     if not reports:
         print("No unprocessed reports found")
+        conn.close()
         return
 
     # Load water body name → id mapping
-    wb_result = supabase.table("water_bodies").select("id, name, slug").execute()
+    cur.execute("SELECT id, name, slug FROM water_bodies")
     name_to_id: dict[str, str] = {}
-    for wb in wb_result.data:
-        name_lower = wb["name"].lower()
-        name_to_id[name_lower] = wb["id"]
-        name_to_id[wb["slug"]] = wb["id"]
+    for row in cur.fetchall():
+        wb_id, name, slug = str(row[0]), row[1], row[2]
+        name_to_id[name.lower()] = wb_id
+        name_to_id[slug] = wb_id
 
     for report in reports:
         print(f"Processing {report['source_name']} ({report['id']})")
@@ -69,18 +74,47 @@ def run() -> None:
         for row in rows:
             # Resolve water_body_id from name
             wb_name = row.pop("_water_body_name", None)
+            water_body_id = None
             if wb_name:
-                wb_name_lower = wb_name.lower()
-                row["water_body_id"] = name_to_id.get(wb_name_lower)
+                water_body_id = name_to_id.get(wb_name.lower())
 
-            supabase.table("parsed_reports").insert(row).execute()
+            cur.execute(
+                """
+                INSERT INTO parsed_reports
+                    (raw_report_id, water_body_id, source_name, report_date, sentiment,
+                     species_mentioned, fly_patterns_mentioned, conditions_summary,
+                     flow_commentary, water_clarity, raw_extraction)
+                VALUES (%(raw_report_id)s, %(water_body_id)s, %(source_name)s, %(report_date)s,
+                        %(sentiment)s, %(species_mentioned)s, %(fly_patterns_mentioned)s,
+                        %(conditions_summary)s, %(flow_commentary)s, %(water_clarity)s,
+                        %(raw_extraction)s)
+                """,
+                {
+                    "raw_report_id": row["raw_report_id"],
+                    "water_body_id": water_body_id,
+                    "source_name": row["source_name"],
+                    "report_date": row.get("report_date"),
+                    "sentiment": row.get("sentiment"),
+                    "species_mentioned": row.get("species_mentioned", []),
+                    "fly_patterns_mentioned": row.get("fly_patterns_mentioned", []),
+                    "conditions_summary": row.get("conditions_summary"),
+                    "flow_commentary": row.get("flow_commentary"),
+                    "water_clarity": row.get("water_clarity"),
+                    "raw_extraction": json.dumps(row.get("raw_extraction")),
+                },
+            )
 
         # Mark as processed
-        supabase.table("raw_reports").update({"is_processed": True}).eq(
-            "id", report["id"]
-        ).execute()
+        cur.execute(
+            "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
+            (report["id"],),
+        )
+        conn.commit()
 
         print(f"  Extracted {len(rows)} entries")
+
+    cur.close()
+    conn.close()
 
 
 if __name__ == "__main__":

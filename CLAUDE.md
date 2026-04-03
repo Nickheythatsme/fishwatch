@@ -61,7 +61,9 @@ No test framework is configured yet. Verify changes with:
 
 - Schema lives in `packages/db/schema.sql`. DB uses snake_case.
 - Seed data in `packages/db/seed.sql`. TypeScript types in `packages/db/types.ts`.
-- Supabase service role key is used server-side only (resolvers, Python jobs). Never expose it to the browser.
+- Next.js app connects to Supabase via `@supabase/ssr` with the publishable key.
+- Python jobs connect directly to Postgres via `psycopg2` using `DATABASE_URL`. All DB interactions use raw SQL.
+- Shared connection helper at `jobs/db.py` — use `get_connection()` in all jobs.
 
 ### Styling
 
@@ -70,11 +72,17 @@ No test framework is configured yet. Verify changes with:
 
 ## Environment Variables
 
-Copy `.env.example` to `apps/web/.env.local`:
+### Next.js (`apps/web/.env.local`)
 
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
-- `SUPABASE_SERVICE_ROLE_KEY` — Server-side only
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — Supabase publishable key
+
+### Python jobs (`.env` at repo root)
+
+- `DATABASE_URL` — Direct Postgres connection string
 - `ANTHROPIC_API_KEY` — For Claude extraction jobs
 
-Python jobs use `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (set as GitHub Actions secrets).
+### GitHub Actions secrets
+
+- `DATABASE_URL`
+- `ANTHROPIC_API_KEY`

@@ -1,11 +1,6 @@
 """Entry point for the scrape job. Fetches reports from all configured sources."""
 
-import os
-import sys
-
-from dotenv import load_dotenv
-from supabase import create_client
-
+from ..db import get_connection
 from .config import SHOP_SOURCES
 from .sources.confluence import ConfluenceScraper
 from .sources.fly_fishers import FlyFishersScraper
@@ -13,8 +8,6 @@ from .sources.fly_and_field import FlyAndFieldScraper
 from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
 from .sources.odfw import ODFWScraper
-
-load_dotenv()
 
 SCRAPERS = {
     "confluence": ConfluenceScraper,
@@ -27,10 +20,8 @@ SCRAPERS = {
 
 
 def run() -> None:
-    supabase = create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_KEY"],
-    )
+    conn = get_connection()
+    cur = conn.cursor()
 
     for source in SHOP_SOURCES:
         scraper_cls = SCRAPERS.get(source["scraper"])
@@ -46,14 +37,24 @@ def run() -> None:
             continue
 
         # Upsert — skip if content_hash already exists for this source
-        response = supabase.table("raw_reports").upsert(
-            result, on_conflict="source_name,content_hash"
-        ).execute()
-
-        if response.data:
+        cur.execute(
+            """
+            INSERT INTO raw_reports (source_name, source_url, raw_html, content_hash, fetched_at)
+            VALUES (%(source_name)s, %(source_url)s, %(raw_html)s, %(content_hash)s, %(fetched_at)s)
+            ON CONFLICT (source_name, content_hash) DO NOTHING
+            RETURNING id
+            """,
+            result,
+        )
+        row = cur.fetchone()
+        if row:
             print(f"Saved report from {source['name']}")
         else:
             print(f"No new content from {source['name']}")
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 if __name__ == "__main__":

@@ -3,61 +3,64 @@
 Computes composite fishing signals for each water body.
 """
 
-import os
+import json
 from datetime import date, datetime, timedelta, timezone
 
-from dotenv import load_dotenv
-from supabase import create_client
-
+from ..db import get_connection
 from .composite import compute_composite
 from .consensus import score_consensus
 from .flow_score import score_flow
 from .sentiment_score import score_sentiment
 
-load_dotenv()
-
 
 def run() -> None:
-    supabase = create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_KEY"],
-    )
+    conn = get_connection()
+    cur = conn.cursor()
 
     today = date.today().isoformat()
     week_ago = (date.today() - timedelta(days=7)).isoformat()
 
     # Get all water bodies
-    wb_result = supabase.table("water_bodies").select("id, slug, name").execute()
-    water_bodies = wb_result.data or []
+    cur.execute("SELECT id, slug, name FROM water_bodies")
+    water_bodies = [
+        {"id": str(row[0]), "slug": row[1], "name": row[2]}
+        for row in cur.fetchall()
+    ]
 
     for wb in water_bodies:
         wb_id = wb["id"]
         slug = wb["slug"]
 
         # Get latest flow reading
-        gauge_result = (
-            supabase.table("gauge_readings")
-            .select("flow_cfs")
-            .eq("water_body_id", wb_id)
-            .order("measured_at", desc=True)
-            .limit(1)
-            .execute()
+        cur.execute(
+            """
+            SELECT flow_cfs FROM gauge_readings
+            WHERE water_body_id = %s
+            ORDER BY measured_at DESC LIMIT 1
+            """,
+            (wb_id,),
         )
-        current_flow = (
-            gauge_result.data[0]["flow_cfs"]
-            if gauge_result.data
-            else None
-        )
+        flow_row = cur.fetchone()
+        current_flow = flow_row[0] if flow_row else None
 
         # Get recent reports (last 7 days)
-        reports_result = (
-            supabase.table("parsed_reports")
-            .select("sentiment, source_name, species_mentioned, fly_patterns_mentioned")
-            .eq("water_body_id", wb_id)
-            .gte("report_date", week_ago)
-            .execute()
+        cur.execute(
+            """
+            SELECT sentiment, source_name, species_mentioned, fly_patterns_mentioned
+            FROM parsed_reports
+            WHERE water_body_id = %s AND report_date >= %s
+            """,
+            (wb_id, week_ago),
         )
-        recent_reports = reports_result.data or []
+        recent_reports = [
+            {
+                "sentiment": row[0],
+                "source_name": row[1],
+                "species_mentioned": row[2] or [],
+                "fly_patterns_mentioned": row[3] or [],
+            }
+            for row in cur.fetchall()
+        ]
 
         # Compute sub-scores
         f_score = score_flow(slug, current_flow)
@@ -91,28 +94,44 @@ def run() -> None:
         summary = ". ".join(summary_parts) + "." if summary_parts else None
 
         # Upsert score for today
-        score_row = {
-            "water_body_id": wb_id,
-            "score_date": today,
-            "composite_score": composite,
-            "flow_score": f_score,
-            "sentiment_score": s_score,
-            "consensus_score": c_score,
-            "recommended_species": list(species),
-            "recommended_flies": list(flies),
-            "summary": summary,
-            "components": {
-                "flow_cfs": current_flow,
-                "report_count": len(recent_reports),
-            },
-            "scored_at": datetime.now(timezone.utc).isoformat(),
-        }
-
-        supabase.table("water_scores").upsert(
-            score_row, on_conflict="water_body_id,score_date"
-        ).execute()
+        cur.execute(
+            """
+            INSERT INTO water_scores
+                (water_body_id, score_date, composite_score, flow_score, sentiment_score,
+                 consensus_score, recommended_species, recommended_flies, summary, components, scored_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (water_body_id, score_date)
+            DO UPDATE SET
+                composite_score = EXCLUDED.composite_score,
+                flow_score = EXCLUDED.flow_score,
+                sentiment_score = EXCLUDED.sentiment_score,
+                consensus_score = EXCLUDED.consensus_score,
+                recommended_species = EXCLUDED.recommended_species,
+                recommended_flies = EXCLUDED.recommended_flies,
+                summary = EXCLUDED.summary,
+                components = EXCLUDED.components,
+                scored_at = EXCLUDED.scored_at
+            """,
+            (
+                wb_id,
+                today,
+                composite,
+                f_score,
+                s_score,
+                c_score,
+                list(species),
+                list(flies),
+                summary,
+                json.dumps({"flow_cfs": current_flow, "report_count": len(recent_reports)}),
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
 
         print(f"{wb['name']}: {composite}/10 (flow={f_score}, sentiment={s_score}, consensus={c_score})")
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 if __name__ == "__main__":
