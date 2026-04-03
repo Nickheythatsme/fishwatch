@@ -1,0 +1,45 @@
+INSERT INTO water_bodies (name, slug, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
+('Lower Deschutes River', 'lower-deschutes', 44.9572, -121.2695, ARRAY['14092500'], ARRAY['rainbow trout', 'steelhead', 'brown trout'], 'Trophy water below Pelton Dam. Year-round fishery with strong redsides.'),
+('Upper Deschutes River', 'upper-deschutes', 43.9945, -121.3856, ARRAY['14050000'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Urban stretch through Bend. Accessible wade fishing.'),
+('Middle Deschutes River', 'middle-deschutes', 44.3500, -121.2400, ARRAY['14076500'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Between Bend and Lake Billy Chinook. Less pressured canyon water.'),
+('Crooked River', 'crooked-river', 44.3072, -121.1300, ARRAY['14087400'], ARRAY['rainbow trout', 'whitefish', 'mountain whitefish'], 'Tailwater below Bowman Dam. Consistent year-round nymphing.'),
+('Fall River', 'fall-river', 43.7800, -121.6300, ARRAY['14057500'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Spring creek. Sight fishing to rising trout. Catch and release.'),
+('Metolius River', 'metolius', 44.5800, -121.5100, ARRAY['14091500'], ARRAY['rainbow trout', 'bull trout', 'brook trout', 'whitefish'], 'Crystal-clear spring-fed river. Challenging technical fishing.'),
+('Crane Prairie Reservoir', 'crane-prairie', 43.7930, -121.7830, '{}', ARRAY['rainbow trout', 'brook trout', 'largemouth bass'], 'Stillwater. Famous for large "cranebows." Best from boat or float tube.'),
+('Hosmer Lake', 'hosmer-lake', 43.8260, -121.7950, '{}', ARRAY['atlantic salmon', 'brook trout'], 'Fly fishing only, catch and release. Unique Atlantic salmon fishery.'),
+('East Lake', 'east-lake', 43.7180, -121.2080, '{}', ARRAY['rainbow trout', 'brown trout', 'atlantic salmon', 'kokanee'], 'Volcanic lake in Newberry Caldera. Hot springs influence.'),
+('Davis Lake', 'davis-lake', 43.5900, -121.8000, '{}', ARRAY['rainbow trout', 'largemouth bass'], 'Shallow fly fishing lake. Good damselfly and callibaetis hatches.'),
+('Tumalo Creek', 'tumalo-creek', 44.0200, -121.5600, '{}', ARRAY['rainbow trout', 'brook trout'], 'Small mountain stream west of Bend. Fun pocket water fishing.');
+
+INSERT INTO species (name, common_aliases) VALUES
+('rainbow trout', ARRAY['rainbow', 'bows', 'redsides', 'redside', 'bow', 'deschutes redside']),
+('brown trout', ARRAY['brown', 'browns', 'brownie']),
+('brook trout', ARRAY['brook', 'brookies', 'brookie', 'char']),
+('steelhead', ARRAY['steelie', 'steelies', 'chrome', 'summer steelhead', 'winter steelhead']),
+('bull trout', ARRAY['bull', 'bulls', 'dolly varden']),
+('whitefish', ARRAY['mountain whitefish', 'whitie', 'whities', 'rocky mountain whitefish']),
+('atlantic salmon', ARRAY['atlantic', 'landlocked salmon']),
+('kokanee', ARRAY['kokanee salmon', 'sockeye']),
+('largemouth bass', ARRAY['largemouth', 'bass', 'bucketmouth']);
+
+INSERT INTO fly_patterns (name, aliases, category, typical_sizes) VALUES
+('Blue Wing Olive', ARRAY['BWO', 'Baetis', 'blue wing'], 'dry', '16-22'),
+('Pale Morning Dun', ARRAY['PMD', 'pale morning'], 'dry', '14-18'),
+('October Caddis', ARRAY['giant orange caddis', 'Dicosmoecus'], 'dry', '6-10'),
+('Elk Hair Caddis', ARRAY['EHC', 'elk hair'], 'dry', '12-18'),
+('Comparadun', ARRAY['compara-dun'], 'dry', '14-20'),
+('Adams', ARRAY['parachute adams'], 'dry', '12-18'),
+('Zebra Midge', ARRAY['zebra', 'midge'], 'nymph', '18-24'),
+('Pheasant Tail', ARRAY['PT', 'pheasant tail nymph', 'PTN'], 'nymph', '14-20'),
+('Hares Ear', ARRAY['GRHE', 'gold ribbed hares ear'], 'nymph', '12-18'),
+('Prince Nymph', ARRAY['prince', 'bead head prince'], 'nymph', '12-16'),
+('San Juan Worm', ARRAY['worm', 'squirmy wormy'], 'nymph', '8-14'),
+('Egg Pattern', ARRAY['egg', 'glo bug', 'nuke egg'], 'nymph', '8-14'),
+('Woolly Bugger', ARRAY['bugger', 'woolly'], 'streamer', '6-10'),
+('Sculpzilla', ARRAY['sculpin', 'sculpzilla'], 'streamer', '4-8'),
+('Callibaetis', ARRAY['speckle wing', 'callibaetis spinner'], 'dry', '14-16'),
+('Damselfly', ARRAY['damsel', 'damselfly nymph'], 'nymph', '10-12'),
+('Chironomid', ARRAY['chronies', 'chronomid', 'bloodworm'], 'nymph', '14-20'),
+('Stonefly Nymph', ARRAY['stone', 'pat''s rubber legs', 'girdle bug'], 'nymph', '4-10'),
+('Salmonfly', ARRAY['salmon fly', 'pteronarcys'], 'dry', '4-8'),
+('Golden Stone', ARRAY['golden stonefly', 'golden'], 'dry', '6-10');
