@@ -1,10 +1,14 @@
-from bs4 import BeautifulSoup
+from playwright.async_api import Page
 
 from .base import BaseScraper
 
 
 class FlyFishersScraper(BaseScraper):
-    """Scraper for The Fly Fishers Place fishing reports."""
+    """Scraper for The Fly Fishers Place fishing reports.
+
+    WordPress.com blog. Index has li.listing-item elements with title links.
+    Posts at /YYYY/MM/DD/[slug]/.
+    """
 
     def __init__(self):
         super().__init__(
@@ -12,9 +16,17 @@ class FlyFishersScraper(BaseScraper):
             url="https://flyfishersplace.com/category/fishing-reports/",
         )
 
-    def extract_content(self, html: str) -> str:
-        soup = BeautifulSoup(html, "html.parser")
-        article = soup.find("article") or soup.find("div", class_="entry-content")
-        if article:
-            return article.get_text(separator="\n", strip=True)
-        return soup.get_text(separator="\n", strip=True)
+    async def discover_posts(self, page: Page) -> list[str]:
+        links = await page.eval_on_selector_all(
+            "li.listing-item a.title, .entry-title a, article a[rel='bookmark']",
+            "els => els.map(el => el.href).filter(Boolean)",
+        )
+        return list(dict.fromkeys(links))
+
+    async def extract_content(self, page: Page) -> str:
+        el = await page.query_selector(
+            ".entry-content, .site-content .entry-content, article .entry-content"
+        )
+        if el:
+            return (await el.inner_text()).strip()
+        return (await page.inner_text("body")).strip()

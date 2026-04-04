@@ -1,7 +1,11 @@
-"""Entry point for the scrape job. Fetches reports from all configured sources."""
+"""Async entry point for the scrape job. Fetches reports from all configured sources."""
 
-from ..db import get_connection
-from .config import SHOP_SOURCES
+import asyncio
+import logging
+
+from playwright.async_api import async_playwright
+
+from db import get_connection
 from .sources.confluence import ConfluenceScraper
 from .sources.fly_fishers import FlyFishersScraper
 from .sources.fly_and_field import FlyAndFieldScraper
@@ -9,52 +13,78 @@ from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
 from .sources.odfw import ODFWScraper
 
-SCRAPERS = {
-    "confluence": ConfluenceScraper,
-    "fly_fishers": FlyFishersScraper,
-    "fly_and_field": FlyAndFieldScraper,
-    "deschutes_angler": DeschutesAnglerScraper,
-    "deschutes_camp": DeschutesCampScraper,
-    "odfw": ODFWScraper,
-}
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+SCRAPERS = [
+    ConfluenceScraper(),
+    FlyFishersScraper(),
+    FlyAndFieldScraper(),
+    DeschutesAnglerScraper(),
+    DeschutesCampScraper(),
+    ODFWScraper(),
+]
+
+
+async def main() -> None:
+    conn = get_connection()
+    cur = conn.cursor()
+    total_saved = 0
+
+    try:
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            try:
+                for scraper in SCRAPERS:
+                    try:
+                        results = await scraper.run(browser)
+                    except Exception:
+                        logger.exception(f"Failed to scrape {scraper.name}")
+                        continue
+
+                    for result in results:
+                        try:
+                            cur.execute("SAVEPOINT raw_report_insert")
+                            cur.execute(
+                                """
+                                INSERT INTO raw_reports
+                                    (source_name, source_url, raw_html, content_hash, fetched_at)
+                                VALUES
+                                    (%(source_name)s, %(source_url)s, %(raw_html)s,
+                                     %(content_hash)s, %(fetched_at)s)
+                                ON CONFLICT (source_name, content_hash) DO NOTHING
+                                RETURNING id
+                                """,
+                                result,
+                            )
+                            row = cur.fetchone()
+                            if row:
+                                logger.info(f"Saved: {result['source_url']}")
+                                total_saved += 1
+                            else:
+                                logger.debug(f"Dedup skip: {result['source_url']}")
+                            cur.execute("RELEASE SAVEPOINT raw_report_insert")
+                        except Exception:
+                            logger.exception(f"DB error for {result['source_url']}")
+                            cur.execute("ROLLBACK TO SAVEPOINT raw_report_insert")
+            finally:
+                await browser.close()
+
+        conn.commit()
+        logger.info(f"Scrape complete. {total_saved} new reports saved.")
+    except Exception:
+        logger.exception("Fatal error in scrape job")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
 
 def run() -> None:
-    conn = get_connection()
-    cur = conn.cursor()
-
-    for source in SHOP_SOURCES:
-        scraper_cls = SCRAPERS.get(source["scraper"])
-        if not scraper_cls:
-            print(f"No scraper for {source['scraper']}, skipping")
-            continue
-
-        scraper = scraper_cls()
-        try:
-            result = scraper.fetch()
-        except Exception as e:
-            print(f"Error scraping {source['name']}: {e}")
-            continue
-
-        # Upsert — skip if content_hash already exists for this source
-        cur.execute(
-            """
-            INSERT INTO raw_reports (source_name, source_url, raw_html, content_hash, fetched_at)
-            VALUES (%(source_name)s, %(source_url)s, %(raw_html)s, %(content_hash)s, %(fetched_at)s)
-            ON CONFLICT (source_name, content_hash) DO NOTHING
-            RETURNING id
-            """,
-            result,
-        )
-        row = cur.fetchone()
-        if row:
-            print(f"Saved report from {source['name']}")
-        else:
-            print(f"No new content from {source['name']}")
-
-    conn.commit()
-    cur.close()
-    conn.close()
+    asyncio.run(main())
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ Computes composite fishing signals for each water body.
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from ..db import get_connection
+from db import get_connection
 from .composite import compute_composite
 from .consensus import score_consensus
 from .flow_score import score_flow

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from ...db import get_connection
+from db import get_connection
 from ..config import USGS_BASE_URL, USGS_PARAMS, USGS_STATIONS
 
 # USGS parameter codes
