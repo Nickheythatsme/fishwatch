@@ -1,6 +1,6 @@
 """Score flow conditions vs ideal range for each water body."""
 
-from ..scraper.config import IDEAL_FLOW_RANGES
+from scraper.config import IDEAL_FLOW_RANGES
 
 
 def score_flow(slug: str, current_flow: float | None) -> float | None:
