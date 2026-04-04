@@ -65,7 +65,7 @@ playwright>=1.44.0
 "playwright>=1.44.0",
 ```
 
-Keep `beautifulsoup4` — it's still used to extract text content from the HTML that Playwright loads. Keep `httpx` — still used by the USGS fetcher.
+Keep `httpx` — still used by the USGS fetcher. The Playwright-based scrapers extract page text directly via `inner_text()`, so BeautifulSoup is not part of scraper-side text extraction. BeautifulSoup is still used by the extractor job to parse raw HTML from stored reports.
 
 ### 1.2 Rewrite BaseScraper (`jobs/scraper/sources/base.py`)
 
@@ -102,7 +102,7 @@ class BaseScraper(ABC):
 
 Key details:
 - Use `playwright.async_api` (async Playwright)
-- One browser instance per scraper run, new page per post
+- One browser instance and one reused page per scraper run
 - Set a 30-second timeout per page load
 - User-Agent: `"FishSignal/1.0 (fishing report aggregator)"`
 

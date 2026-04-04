@@ -3,6 +3,8 @@
 import asyncio
 import logging
 
+from playwright.async_api import async_playwright
+
 from db import get_connection
 from .sources.confluence import ConfluenceScraper
 from .sources.fly_fishers import FlyFishersScraper
@@ -32,37 +34,53 @@ async def main() -> None:
     cur = conn.cursor()
     total_saved = 0
 
-    for scraper in SCRAPERS:
-        try:
-            results = await scraper.run()
-        except Exception as e:
-            logger.error(f"Failed to scrape {scraper.name}: {e}")
-            continue
+    try:
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            try:
+                for scraper in SCRAPERS:
+                    try:
+                        results = await scraper.run(browser)
+                    except Exception:
+                        logger.exception(f"Failed to scrape {scraper.name}")
+                        continue
 
-        for result in results:
-            cur.execute(
-                """
-                INSERT INTO raw_reports
-                    (source_name, source_url, raw_html, content_hash, fetched_at)
-                VALUES
-                    (%(source_name)s, %(source_url)s, %(raw_html)s,
-                     %(content_hash)s, %(fetched_at)s)
-                ON CONFLICT (source_name, content_hash) DO NOTHING
-                RETURNING id
-                """,
-                result,
-            )
-            row = cur.fetchone()
-            if row:
-                logger.info(f"Saved: {result['source_url']}")
-                total_saved += 1
-            else:
-                logger.debug(f"Dedup skip: {result['source_url']}")
+                    for result in results:
+                        try:
+                            cur.execute("SAVEPOINT raw_report_insert")
+                            cur.execute(
+                                """
+                                INSERT INTO raw_reports
+                                    (source_name, source_url, raw_html, content_hash, fetched_at)
+                                VALUES
+                                    (%(source_name)s, %(source_url)s, %(raw_html)s,
+                                     %(content_hash)s, %(fetched_at)s)
+                                ON CONFLICT (source_name, content_hash) DO NOTHING
+                                RETURNING id
+                                """,
+                                result,
+                            )
+                            row = cur.fetchone()
+                            if row:
+                                logger.info(f"Saved: {result['source_url']}")
+                                total_saved += 1
+                            else:
+                                logger.debug(f"Dedup skip: {result['source_url']}")
+                            cur.execute("RELEASE SAVEPOINT raw_report_insert")
+                        except Exception:
+                            logger.exception(f"DB error for {result['source_url']}")
+                            cur.execute("ROLLBACK TO SAVEPOINT raw_report_insert")
+            finally:
+                await browser.close()
 
-    conn.commit()
-    cur.close()
-    conn.close()
-    logger.info(f"Scrape complete. {total_saved} new reports saved.")
+        conn.commit()
+        logger.info(f"Scrape complete. {total_saved} new reports saved.")
+    except Exception:
+        logger.exception("Fatal error in scrape job")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
 
 def run() -> None:
