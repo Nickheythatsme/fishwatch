@@ -10,7 +10,7 @@ import anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from ..db import get_connection
+from db import get_connection
 from .parser import parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 

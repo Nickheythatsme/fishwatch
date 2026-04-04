@@ -1,45 +1,72 @@
 import hashlib
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from urllib.parse import urljoin
 
-import httpx
+from playwright.async_api import async_playwright, Page
+
+logger = logging.getLogger(__name__)
 
 
 class BaseScraper(ABC):
-    """Base class for all fishing report scrapers."""
+    """Base class for all fishing report scrapers using Playwright."""
 
     def __init__(self, name: str, url: str):
         self.name = name
         self.url = url
-        self.client = httpx.Client(
-            timeout=30,
-            headers={
-                "User-Agent": "FishSignal/1.0 (fishing report aggregator)"
-            },
-        )
 
-    def fetch(self) -> dict:
-        """Fetch the page and return raw HTML + metadata."""
-        response = self.client.get(self.url)
-        response.raise_for_status()
-        raw_html = response.text
+    async def run(self) -> list[dict]:
+        """Full scrape lifecycle. Returns list of raw_report dicts."""
+        results: list[dict] = []
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent="FishSignal/1.0 (fishing report aggregator)"
+            )
+            context.set_default_timeout(30_000)
 
-        return {
-            "source_name": self.name,
-            "source_url": self.url,
-            "raw_html": raw_html,
-            "content_hash": hashlib.sha256(
-                self.extract_content(raw_html).encode()
-            ).hexdigest(),
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
-        }
+            try:
+                page = await context.new_page()
+                await page.goto(self.url, wait_until="domcontentloaded")
+                post_urls = await self.discover_posts(page)
+                logger.info(f"[{self.name}] Discovered {len(post_urls)} posts")
+
+                for post_url in post_urls:
+                    try:
+                        absolute_url = urljoin(self.url, post_url)
+
+                        # Skip re-navigation if already on this page (e.g. ODFW single-page)
+                        if absolute_url != page.url:
+                            await page.goto(absolute_url, wait_until="domcontentloaded")
+
+                        content = await self.extract_content(page)
+                        if not content or not content.strip():
+                            logger.warning(f"[{self.name}] Empty content from {absolute_url}")
+                            continue
+
+                        content_hash = hashlib.sha256(content.encode()).hexdigest()
+                        results.append({
+                            "source_name": self.name,
+                            "source_url": absolute_url,
+                            "raw_html": content,
+                            "content_hash": content_hash,
+                            "fetched_at": datetime.now(timezone.utc).isoformat(),
+                        })
+                    except Exception as e:
+                        logger.error(f"[{self.name}] Error on {post_url}: {e}")
+                        continue
+            finally:
+                await browser.close()
+
+        return results
 
     @abstractmethod
-    def extract_content(self, html: str) -> str:
-        """Extract the main report content from raw HTML.
+    async def discover_posts(self, page: Page) -> list[str]:
+        """Given the index page, return URLs of individual report posts."""
+        ...
 
-        Subclasses implement this to isolate the fishing report text
-        from navigation, ads, sidebars, etc. The extracted text is
-        used for content hashing (dedup) and passed to the LLM.
-        """
+    @abstractmethod
+    async def extract_content(self, page: Page) -> str:
+        """Given an individual post page, extract the report text content."""
         ...

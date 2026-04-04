@@ -23,15 +23,13 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
       - name: Run scraper
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m scraper.main
-
-      - name: Run USGS gauge fetch
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m scraper.sources.usgs
 
   extract:
     needs: scrape

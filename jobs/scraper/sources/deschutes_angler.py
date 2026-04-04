@@ -1,10 +1,14 @@
-from bs4 import BeautifulSoup
+from playwright.async_api import Page
 
 from .base import BaseScraper
 
 
 class DeschutesAnglerScraper(BaseScraper):
-    """Scraper for Deschutes Angler fishing reports."""
+    """Scraper for Deschutes Angler fishing reports.
+
+    Shopify blog with minimal markup. Links at /blogs/fishing-report/[slug].
+    Content in .rte (Shopify Rich Text Editor).
+    """
 
     def __init__(self):
         super().__init__(
@@ -12,9 +16,17 @@ class DeschutesAnglerScraper(BaseScraper):
             url="https://deschutesangler.com/blogs/fishing-report",
         )
 
-    def extract_content(self, html: str) -> str:
-        soup = BeautifulSoup(html, "html.parser")
-        article = soup.find("article") or soup.find("div", class_="blog-post")
-        if article:
-            return article.get_text(separator="\n", strip=True)
-        return soup.get_text(separator="\n", strip=True)
+    async def discover_posts(self, page: Page) -> list[str]:
+        links = await page.eval_on_selector_all(
+            "a[href*='/blogs/fishing-report/']",
+            "els => els.map(el => el.href).filter(h => h && h.includes('/blogs/fishing-report/'))",
+        )
+        return list(dict.fromkeys(
+            l for l in links if l.rstrip("/") != self.url.rstrip("/")
+        ))
+
+    async def extract_content(self, page: Page) -> str:
+        el = await page.query_selector(".rte, article .blog-post, article")
+        if el:
+            return (await el.inner_text()).strip()
+        return (await page.inner_text("body")).strip()

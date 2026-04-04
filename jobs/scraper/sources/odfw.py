@@ -1,10 +1,14 @@
-from bs4 import BeautifulSoup
+from playwright.async_api import Page
 
 from .base import BaseScraper
 
 
 class ODFWScraper(BaseScraper):
-    """Scraper for ODFW Central Zone fishing reports."""
+    """Scraper for ODFW Central Zone fishing reports.
+
+    Government single-page report. All content on one page, no individual
+    posts to navigate into. discover_posts returns [self.url].
+    """
 
     def __init__(self):
         super().__init__(
@@ -12,12 +16,13 @@ class ODFWScraper(BaseScraper):
             url="https://myodfw.com/recreation-report/fishing-report/central-zone",
         )
 
-    def extract_content(self, html: str) -> str:
-        soup = BeautifulSoup(html, "html.parser")
-        # ODFW uses a specific content region
-        content = soup.find("div", class_="field--name-body") or soup.find(
-            "div", class_="node__content"
+    async def discover_posts(self, page: Page) -> list[str]:
+        return [self.url]
+
+    async def extract_content(self, page: Page) -> str:
+        el = await page.query_selector(
+            "#main-content, .field--name-body, .node__content"
         )
-        if content:
-            return content.get_text(separator="\n", strip=True)
-        return soup.get_text(separator="\n", strip=True)
+        if el:
+            return (await el.inner_text()).strip()
+        return (await page.inner_text("body")).strip()
