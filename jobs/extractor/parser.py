@@ -1,14 +1,23 @@
 """Parse Claude extraction JSON into database rows."""
 
+from __future__ import annotations
+
 import json
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+VALID_SENTIMENTS = {"excellent", "good", "fair", "poor", "off"}
 
 
 def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> list[dict]:
     """Parse Claude's JSON response into parsed_report rows."""
     try:
         entries = json.loads(raw_json)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON from Claude: {e}")
+        logger.debug(f"Raw JSON: {raw_json[:500]}")
         return []
 
     if not isinstance(entries, list):
@@ -27,16 +36,14 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
                 "conditions_summary": entry.get("conditions_summary"),
                 "flow_commentary": entry.get("flow_commentary"),
                 "water_clarity": entry.get("water_clarity"),
+                "hatches": entry.get("hatches", []),
+                "river_section": entry.get("river_section"),
                 "raw_extraction": entry,
-                # water_body_id will be resolved by matching entry["water_body"]
                 "_water_body_name": entry.get("water_body"),
             }
         )
 
     return rows
-
-
-VALID_SENTIMENTS = {"excellent", "good", "fair", "poor", "off"}
 
 
 def _normalize_sentiment(value: Any) -> str | None:

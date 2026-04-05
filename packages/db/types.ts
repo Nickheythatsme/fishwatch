@@ -49,6 +49,8 @@ export interface ParsedReport {
   conditions_summary: string | null
   flow_commentary: string | null
   water_clarity: string | null
+  hatches: { name: string; stage: string | null; timing: string | null }[]
+  river_section: string | null
   raw_extraction: Record<string, unknown> | null
   extracted_at: string
 }
