@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 
 import anthropic
 from bs4 import BeautifulSoup
@@ -77,8 +78,11 @@ def run() -> int:
         client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
         # Fetch unprocessed reports
-        cur.execute("SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE")
-        reports = [{"id": str(row[0]), "source_name": row[1], "raw_html": row[2]} for row in cur.fetchall()]
+        cur.execute("SELECT id, source_name, raw_html, fetched_at FROM raw_reports WHERE is_processed = FALSE")
+        reports = [
+            {"id": str(row[0]), "source_name": row[1], "raw_html": row[2], "fetched_at": row[3]}
+            for row in cur.fetchall()
+        ]
 
         if not reports:
             logger.info("No unprocessed reports found")
@@ -172,6 +176,15 @@ def run() -> int:
 
                 try:
                     cur.execute("SAVEPOINT extract_insert")
+                    # Fall back to the scrape date if Claude couldn't extract a report date
+                    fetched_at = report.get("fetched_at")
+                    fallback_date = (
+                        fetched_at.astimezone(UTC).date().isoformat()
+                        if fetched_at
+                        else datetime.now(UTC).date().isoformat()
+                    )
+                    report_date = row.get("report_date") or fallback_date
+
                     cur.execute(
                         """
                         INSERT INTO parsed_reports
@@ -185,7 +198,7 @@ def run() -> int:
                             row["raw_report_id"],
                             water_body_id,
                             row["source_name"],
-                            row.get("report_date"),
+                            report_date,
                             row.get("sentiment"),
                             row.get("species_mentioned", []),
                             row.get("fly_patterns_mentioned", []),
