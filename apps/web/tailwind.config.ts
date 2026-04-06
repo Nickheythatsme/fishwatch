@@ -9,11 +9,10 @@ const config: Config = {
     extend: {
       colors: {
         signal: {
-          hot: '#ef4444',
-          warm: '#f97316',
-          mild: '#eab308',
-          cool: '#22c55e',
-          cold: '#3b82f6',
+          great: '#22c55e',
+          good: '#eab308',
+          fair: '#f97316',
+          poor: '#ef4444',
         },
       },
     },
