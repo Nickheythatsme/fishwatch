@@ -32,6 +32,10 @@ function createIcon(color: string, size: number) {
   })
 }
 
+const PIN_SIZE = 20
+const HIGHLIGHTED_PIN_SIZE = 28
+const HIGHLIGHT_Z_OFFSET = 1000
+
 interface WaterPinProps {
   waterBody: WaterBodyPin
   highlighted?: boolean
@@ -40,7 +44,7 @@ interface WaterPinProps {
 export function WaterPin({ waterBody, highlighted }: WaterPinProps) {
   const score = waterBody.currentSignal?.compositeScore
   const color = scoreToColor(score)
-  const size = highlighted ? 28 : 20
+  const size = highlighted ? HIGHLIGHTED_PIN_SIZE : PIN_SIZE
 
   const icon = useMemo(() => createIcon(color, size), [color, size])
 
@@ -48,7 +52,7 @@ export function WaterPin({ waterBody, highlighted }: WaterPinProps) {
     <Marker
       position={[waterBody.latitude, waterBody.longitude]}
       icon={icon}
-      zIndexOffset={highlighted ? 1000 : 0}
+      zIndexOffset={highlighted ? HIGHLIGHT_Z_OFFSET : 0}
     >
       {highlighted && (
         <Tooltip direction="top" offset={[0, -size / 2]} permanent>

@@ -1,3 +1,5 @@
+'use client'
+
 import { SignalBadge } from './SignalBadge'
 import { isNoDataSignal, relativeTime } from './score-utils'
 
@@ -32,6 +34,8 @@ export function SignalCard({ waterBody, onHover }: SignalCardProps) {
       className="block rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
       onMouseEnter={() => onHover?.(waterBody.id)}
       onMouseLeave={() => onHover?.(null)}
+      onFocus={() => onHover?.(waterBody.id)}
+      onBlur={() => onHover?.(null)}
     >
       <div className="flex items-start justify-between">
         <div>
