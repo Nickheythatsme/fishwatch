@@ -15,8 +15,21 @@ class ExtractionParseError(Exception):
     """Raised when Claude returns unparseable JSON."""
 
 
+def _strip_code_fences(text: str) -> str:
+    """Strip markdown code fences (```json ... ```) from Claude responses."""
+    text = text.strip()
+    if text.startswith("```"):
+        # Remove opening fence (```json or ```)
+        first_newline = text.index("\n") if "\n" in text else len(text)
+        text = text[first_newline + 1 :]
+    if text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
+
+
 def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> list[dict]:
     """Parse Claude's JSON response into parsed_report rows."""
+    raw_json = _strip_code_fences(raw_json)
     try:
         entries = json.loads(raw_json)
     except json.JSONDecodeError as e:
