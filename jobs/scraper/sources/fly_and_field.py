@@ -22,8 +22,8 @@ class FlyAndFieldScraper(BaseScraper):
             "a[href*='/blogs/fishing-reports/']",
             "els => els.map(el => el.href).filter(h => h && h.includes('/blogs/fishing-reports/'))",
         )
-        # Filter out the index page itself
-        return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/")))
+        # Filter out the index page itself and tag listing pages
+        return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/") and "/tagged/" not in l))
 
     async def extract_content(self, page: Page) -> str:
         el = await page.query_selector(".article__content.rte, .article__content, .rte")

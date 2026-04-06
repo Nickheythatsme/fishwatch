@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import sys
 
 from playwright.async_api import async_playwright
 
@@ -30,10 +31,11 @@ SCRAPERS = [
 ]
 
 
-async def main() -> None:
+async def main() -> int:
     conn = get_connection()
     cur = conn.cursor()
     total_saved = 0
+    failures = 0
 
     try:
         async with async_playwright() as pw:
@@ -44,6 +46,7 @@ async def main() -> None:
                         results = await scraper.run(browser)
                     except Exception:
                         logger.exception(f"Failed to scrape {scraper.name}")
+                        failures += 1
                         continue
 
                     for result in results:
@@ -72,22 +75,25 @@ async def main() -> None:
                             logger.exception(f"DB error for {result['source_url']}")
                             cur.execute("ROLLBACK TO SAVEPOINT raw_report_insert")
                             cur.execute("RELEASE SAVEPOINT raw_report_insert")
+                            failures += 1
             finally:
                 await browser.close()
 
         conn.commit()
         logger.info(f"Scrape complete. {total_saved} new reports saved.")
+        return failures
     except Exception:
         logger.exception("Fatal error in scrape job")
         conn.rollback()
+        return 1
     finally:
         cur.close()
         conn.close()
 
 
-def run() -> None:
-    asyncio.run(main())
+def run() -> int:
+    return asyncio.run(main())
 
 
 if __name__ == "__main__":
-    run()
+    sys.exit(1 if run() else 0)

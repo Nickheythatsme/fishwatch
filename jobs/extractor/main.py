@@ -7,6 +7,7 @@ fishing condition data, one parsed_report row per water body mentioned.
 import json
 import logging
 import os
+import sys
 
 import anthropic
 from bs4 import BeautifulSoup
@@ -14,7 +15,7 @@ from dotenv import load_dotenv
 
 from db import get_connection
 
-from .parser import parse_extraction
+from .parser import ExtractionParseError, parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 
 load_dotenv()
@@ -68,7 +69,7 @@ def extract_text_from_html(html: str, source_name: str) -> str:
     return soup.get_text(separator="\n", strip=True)
 
 
-def run() -> None:
+def run() -> int:
     conn = get_connection()
     cur = conn.cursor()
 
@@ -81,7 +82,7 @@ def run() -> None:
 
         if not reports:
             logger.info("No unprocessed reports found")
-            return
+            return 0
 
         logger.info(f"Processing {len(reports)} unprocessed reports")
 
@@ -94,6 +95,7 @@ def run() -> None:
             name_to_id[slug] = wb_id
 
         total_extracted = 0
+        failures = 0
 
         for report in reports:
             logger.info(f"Processing {report['source_name']} ({report['id'][:8]}...)")
@@ -125,10 +127,16 @@ def run() -> None:
                 )
             except Exception:
                 logger.exception("  Claude API error")
+                failures += 1
                 continue
 
             raw_json = response.content[0].text
-            rows = parse_extraction(raw_json, report["id"], report["source_name"])
+            try:
+                rows = parse_extraction(raw_json, report["id"], report["source_name"])
+            except ExtractionParseError as e:
+                logger.error(f"  Unparseable response for {report['source_name']} ({report['id'][:8]}...): {e}")
+                failures += 1
+                continue
 
             if not rows:
                 logger.warning(f"  No entries extracted from {report['source_name']}")
@@ -187,6 +195,7 @@ def run() -> None:
                     logger.exception(f"  DB insert error for water body: {wb_name}")
                     cur.execute("ROLLBACK TO SAVEPOINT extract_insert")
                     cur.execute("RELEASE SAVEPOINT extract_insert")
+                    failures += 1
 
             # Only mark as processed if at least one row was inserted,
             # or if Claude returned no extractable entries (nothing to retry)
@@ -199,15 +208,21 @@ def run() -> None:
 
             logger.info(f"  Extracted {len(rows)} entries")
 
+        if failures > 0:
+            logger.error(f"Extraction completed with {failures} failure(s) out of {len(reports)} reports.")
+
         logger.info(f"Extraction complete. {total_extracted} parsed reports created.")
+
+        return failures
 
     except Exception:
         logger.exception("Fatal error in extraction job")
         conn.rollback()
+        return 1
     finally:
         cur.close()
         conn.close()
 
 
 if __name__ == "__main__":
-    run()
+    sys.exit(1 if run() else 0)
