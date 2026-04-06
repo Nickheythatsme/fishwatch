@@ -131,10 +131,19 @@ def run() -> int:
                 continue
 
             raw_json = response.content[0].text
+            if not raw_json or not raw_json.strip():
+                logger.error(
+                    f"  Empty response from Claude for {report['source_name']} ({report['id'][:8]}...)"
+                    f" stop_reason={response.stop_reason}, content_len={len(text)} chars"
+                )
+                failures += 1
+                continue
+
             try:
                 rows = parse_extraction(raw_json, report["id"], report["source_name"])
             except ExtractionParseError as e:
                 logger.error(f"  Unparseable response for {report['source_name']} ({report['id'][:8]}...): {e}")
+                logger.warning(f"  Response preview: {raw_json[:200]}")
                 failures += 1
                 continue
 
