@@ -1,3 +1,5 @@
+import { scoreToColor, scoreToLabel } from './score-utils'
+
 interface Signal {
   compositeScore: number
   flowScore?: number | null
@@ -5,20 +7,42 @@ interface Signal {
   consensusScore?: number | null
 }
 
-function ScoreBar({ label, score }: { label: string; score: number | null | undefined }) {
+function barColor(score: number): string {
+  if (score >= 8) return 'bg-green-500'
+  if (score >= 6) return 'bg-yellow-500'
+  if (score >= 4) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
+function ScoreBar({
+  label,
+  score,
+  showLabel,
+}: {
+  label: string
+  score: number | null | undefined
+  showLabel?: boolean
+}) {
   if (score == null) return null
   const pct = (score / 10) * 100
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-24 text-sm text-gray-600">{label}</span>
+      <span className="w-28 text-sm text-gray-600">{label}</span>
       <div className="h-2 flex-1 rounded-full bg-gray-200">
         <div
-          className="h-2 rounded-full bg-blue-500"
+          className={`h-2 rounded-full ${barColor(score)}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-8 text-right text-sm font-medium">{score.toFixed(1)}</span>
+      <span className="w-16 text-right text-sm font-medium">
+        {score.toFixed(1)}
+        {showLabel && (
+          <span className="ml-1 text-xs font-normal text-gray-400">
+            {scoreToLabel(score)}
+          </span>
+        )}
+      </span>
     </div>
   )
 }
@@ -26,10 +50,10 @@ function ScoreBar({ label, score }: { label: string; score: number | null | unde
 export function ScoreBreakdown({ signal }: { signal: Signal }) {
   return (
     <div className="space-y-2 rounded-lg border bg-white p-4">
-      <ScoreBar label="Overall" score={signal.compositeScore} />
-      <ScoreBar label="Flow" score={signal.flowScore} />
-      <ScoreBar label="Sentiment" score={signal.sentimentScore} />
-      <ScoreBar label="Consensus" score={signal.consensusScore} />
+      <ScoreBar label="Overall Signal" score={signal.compositeScore} showLabel />
+      <ScoreBar label="River Flow" score={signal.flowScore} />
+      <ScoreBar label="Shop Reports" score={signal.sentimentScore} />
+      <ScoreBar label="Report Agreement" score={signal.consensusScore} />
     </div>
   )
 }

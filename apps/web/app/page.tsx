@@ -20,6 +20,9 @@ const DASHBOARD_QUERY = gql`
       typicalSpecies
       currentSignal {
         compositeScore
+        flowScore
+        sentimentScore
+        consensusScore
         summary
         recommendedFlies
         recommendedSpecies

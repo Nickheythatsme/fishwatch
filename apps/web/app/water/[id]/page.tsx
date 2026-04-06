@@ -4,6 +4,7 @@ import { gql, useQuery } from '@apollo/client'
 import { useParams } from 'next/navigation'
 import { SignalBadge } from '@/components/signals/SignalBadge'
 import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
+import { isNoDataSignal } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
@@ -93,7 +94,10 @@ export default function WaterBodyPage() {
           )}
         </div>
         {wb.currentSignal && (
-          <SignalBadge score={wb.currentSignal.compositeScore} />
+          <SignalBadge
+            score={wb.currentSignal.compositeScore}
+            noData={isNoDataSignal(wb.currentSignal)}
+          />
         )}
       </div>
 

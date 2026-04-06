@@ -1,4 +1,5 @@
 import { SignalBadge } from './SignalBadge'
+import { isNoDataSignal, relativeTime } from './score-utils'
 
 interface WaterBodyWithSignal {
   id: string
@@ -7,6 +8,9 @@ interface WaterBodyWithSignal {
   currentFlow?: number | null
   currentSignal?: {
     compositeScore: number
+    flowScore?: number | null
+    sentimentScore?: number | null
+    consensusScore?: number | null
     summary?: string | null
     recommendedFlies: string[]
     scoreDate: string
@@ -15,6 +19,7 @@ interface WaterBodyWithSignal {
 
 export function SignalCard({ waterBody }: { waterBody: WaterBodyWithSignal }) {
   const signal = waterBody.currentSignal
+  const noData = isNoDataSignal(signal)
 
   return (
     <a
@@ -22,21 +27,24 @@ export function SignalCard({ waterBody }: { waterBody: WaterBodyWithSignal }) {
       className="block rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="flex items-start justify-between">
-        <h3 className="font-semibold">{waterBody.name}</h3>
-        {signal && <SignalBadge score={signal.compositeScore} />}
+        <div>
+          <h3 className="font-semibold">{waterBody.name}</h3>
+          {signal && !noData && (
+            <span className="text-xs text-gray-400">
+              Updated {relativeTime(signal.scoreDate)}
+            </span>
+          )}
+        </div>
+        {signal && <SignalBadge score={signal.compositeScore} noData={noData} />}
       </div>
 
-      {signal?.summary && (
-        <p className="mt-2 text-sm text-gray-600">{signal.summary}</p>
-      )}
-
-      {waterBody.currentFlow != null && (
+      {!noData && waterBody.currentFlow != null && (
         <p className="mt-2 text-xs text-gray-500">
           Flow: {waterBody.currentFlow.toLocaleString()} cfs
         </p>
       )}
 
-      {signal && signal.recommendedFlies.length > 0 && (
+      {!noData && signal && signal.recommendedFlies.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {signal.recommendedFlies.slice(0, 3).map((fly) => (
             <span
