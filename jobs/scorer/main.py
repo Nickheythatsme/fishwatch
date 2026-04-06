@@ -58,7 +58,7 @@ def run() -> int:
                     """
                     SELECT sentiment, source_name, species_mentioned, fly_patterns_mentioned
                     FROM parsed_reports
-                    WHERE water_body_id = %s AND report_date >= %s
+                    WHERE water_body_id = %s AND COALESCE(report_date, extracted_at::date) >= %s
                     """,
                     (wb_id, week_ago),
                 )
