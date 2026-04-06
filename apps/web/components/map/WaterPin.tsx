@@ -1,6 +1,7 @@
 'use client'
 
-import { Marker, Popup } from 'react-leaflet'
+import { useMemo } from 'react'
+import { Marker, Popup, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 
 interface WaterBodyPin {
@@ -22,24 +23,42 @@ function scoreToColor(score: number | undefined | null): string {
   return '#ef4444' // red
 }
 
-function createIcon(color: string) {
+function createIcon(color: string, size: number) {
   return L.divIcon({
     className: 'custom-pin',
-    html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,${size > 20 ? 0.4 : 0.3});transition:all 0.15s ease"></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   })
 }
 
-export function WaterPin({ waterBody }: { waterBody: WaterBodyPin }) {
+const PIN_SIZE = 20
+const HIGHLIGHTED_PIN_SIZE = 28
+const HIGHLIGHT_Z_OFFSET = 1000
+
+interface WaterPinProps {
+  waterBody: WaterBodyPin
+  highlighted?: boolean
+}
+
+export function WaterPin({ waterBody, highlighted }: WaterPinProps) {
   const score = waterBody.currentSignal?.compositeScore
   const color = scoreToColor(score)
+  const size = highlighted ? HIGHLIGHTED_PIN_SIZE : PIN_SIZE
+
+  const icon = useMemo(() => createIcon(color, size), [color, size])
 
   return (
     <Marker
       position={[waterBody.latitude, waterBody.longitude]}
-      icon={createIcon(color)}
+      icon={icon}
+      zIndexOffset={highlighted ? HIGHLIGHT_Z_OFFSET : 0}
     >
+      {highlighted && (
+        <Tooltip direction="top" offset={[0, -size / 2]} permanent>
+          {waterBody.name}
+        </Tooltip>
+      )}
       <Popup>
         <div className="text-sm">
           <a href={`/water/${waterBody.slug}`} className="font-semibold text-blue-700">

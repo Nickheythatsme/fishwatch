@@ -1,3 +1,5 @@
+'use client'
+
 import { SignalBadge } from './SignalBadge'
 import { isNoDataSignal, relativeTime } from './score-utils'
 
@@ -17,7 +19,12 @@ interface WaterBodyWithSignal {
   } | null
 }
 
-export function SignalCard({ waterBody }: { waterBody: WaterBodyWithSignal }) {
+interface SignalCardProps {
+  waterBody: WaterBodyWithSignal
+  onHover?: (id: string | null) => void
+}
+
+export function SignalCard({ waterBody, onHover }: SignalCardProps) {
   const signal = waterBody.currentSignal
   const noData = isNoDataSignal(signal)
 
@@ -25,6 +32,10 @@ export function SignalCard({ waterBody }: { waterBody: WaterBodyWithSignal }) {
     <a
       href={`/water/${waterBody.slug}`}
       className="block rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+      onMouseEnter={() => onHover?.(waterBody.id)}
+      onMouseLeave={() => onHover?.(null)}
+      onFocus={() => onHover?.(waterBody.id)}
+      onBlur={() => onHover?.(null)}
     >
       <div className="flex items-start justify-between">
         <div>

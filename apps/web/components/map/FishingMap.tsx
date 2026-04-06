@@ -15,7 +15,12 @@ interface WaterBodyPin {
   } | null
 }
 
-export function FishingMap({ waterBodies }: { waterBodies: WaterBodyPin[] }) {
+interface FishingMapProps {
+  waterBodies: WaterBodyPin[]
+  hoveredId?: string | null
+}
+
+export function FishingMap({ waterBodies, hoveredId }: FishingMapProps) {
   return (
     <MapContainer
       center={[44.05, -121.3]}
@@ -28,7 +33,7 @@ export function FishingMap({ waterBodies }: { waterBodies: WaterBodyPin[] }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {waterBodies.map((wb) => (
-        <WaterPin key={wb.id} waterBody={wb} />
+        <WaterPin key={wb.id} waterBody={wb} highlighted={wb.id === hoveredId} />
       ))}
     </MapContainer>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -131,6 +131,8 @@ function DashboardContent() {
     router.replace(qs ? `/?${qs}` : '/', { scroll: false })
   }
 
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+
   const waterBodies: DashboardWaterBody[] = data?.waterBodies ?? []
   const sortedWaterBodies = useMemo(
     () => sortWaterBodies(waterBodies, sortBy),
@@ -164,7 +166,7 @@ function DashboardContent() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Central Oregon Fishing Conditions</h1>
 
-      <FishingMap waterBodies={waterBodies} />
+      <FishingMap waterBodies={waterBodies} hoveredId={hoveredId} />
 
       <div className="mt-8 flex items-center gap-2" role="radiogroup" aria-label="Sort water bodies">
         <span className="text-sm font-medium text-gray-500">Sort:</span>
@@ -187,7 +189,7 @@ function DashboardContent() {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sortedWaterBodies.map((wb) => (
-          <SignalCard key={wb.id} waterBody={wb} />
+          <SignalCard key={wb.id} waterBody={wb} onHover={setHoveredId} />
         ))}
       </div>
     </div>
