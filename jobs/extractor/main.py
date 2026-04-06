@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 
 import anthropic
 from bs4 import BeautifulSoup
@@ -176,7 +177,13 @@ def run() -> int:
                 try:
                     cur.execute("SAVEPOINT extract_insert")
                     # Fall back to the scrape date if Claude couldn't extract a report date
-                    report_date = row.get("report_date") or report["fetched_at"].date().isoformat()
+                    fetched_at = report.get("fetched_at")
+                    fallback_date = (
+                        fetched_at.astimezone(UTC).date().isoformat()
+                        if fetched_at
+                        else datetime.now(UTC).date().isoformat()
+                    )
+                    report_date = row.get("report_date") or fallback_date
 
                     cur.execute(
                         """
