@@ -9,9 +9,6 @@ export function SignalBadge({ score, noData }: SignalBadgeProps) {
   if (noData) {
     return (
       <div className="flex flex-col items-center gap-0.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-          Fishing Signal
-        </span>
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-300 text-sm font-bold text-white">
           --
         </span>
@@ -22,9 +19,6 @@ export function SignalBadge({ score, noData }: SignalBadgeProps) {
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-        Fishing Signal
-      </span>
       <span
         className={`inline-flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold text-white ${scoreToColor(score)}`}
       >
