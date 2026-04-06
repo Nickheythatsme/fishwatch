@@ -21,9 +21,7 @@ class DeschutesAnglerScraper(BaseScraper):
             "a[href*='/blogs/fishing-report/']",
             "els => els.map(el => el.href).filter(h => h && h.includes('/blogs/fishing-report/'))",
         )
-        return list(dict.fromkeys(
-            l for l in links if l.rstrip("/") != self.url.rstrip("/")
-        ))
+        return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/")))
 
     async def extract_content(self, page: Page) -> str:
         el = await page.query_selector(".rte, article .blog-post, article")

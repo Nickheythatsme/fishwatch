@@ -20,9 +20,7 @@ class ODFWScraper(BaseScraper):
         return [self.url]
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(
-            "#main-content, .field--name-body, .node__content"
-        )
+        el = await page.query_selector("#main-content, .field--name-body, .node__content")
         if el:
             return (await el.inner_text()).strip()
         return (await page.inner_text("body")).strip()

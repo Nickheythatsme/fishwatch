@@ -67,7 +67,6 @@ export default function DashboardPage() {
 
       <FishingMap waterBodies={waterBodies} />
 
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {waterBodies.map((wb: any) => (
           <SignalCard key={wb.id} waterBody={wb} />

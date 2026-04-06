@@ -24,9 +24,7 @@ class FlyFishersScraper(BaseScraper):
         return list(dict.fromkeys(links))
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(
-            ".entry-content, .site-content .entry-content, article .entry-content"
-        )
+        el = await page.query_selector(".entry-content, .site-content .entry-content, article .entry-content")
         if el:
             return (await el.inner_text()).strip()
         return (await page.inner_text("body")).strip()

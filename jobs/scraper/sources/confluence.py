@@ -25,9 +25,7 @@ class ConfluenceScraper(BaseScraper):
         return list(dict.fromkeys(links))
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(
-            ".progression-blog-content, .entry-content, article"
-        )
+        el = await page.query_selector(".progression-blog-content, .entry-content, article")
         if el:
             return (await el.inner_text()).strip()
         return (await page.inner_text("body")).strip()

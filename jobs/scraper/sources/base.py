@@ -1,7 +1,7 @@
 import hashlib
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 from playwright.async_api import Browser, Page
@@ -19,9 +19,7 @@ class BaseScraper(ABC):
     async def run(self, browser: Browser) -> list[dict]:
         """Scrape using a shared browser instance. Returns list of raw_report dicts."""
         results: list[dict] = []
-        context = await browser.new_context(
-            user_agent="FishSignal/1.0 (fishing report aggregator)"
-        )
+        context = await browser.new_context(user_agent="FishSignal/1.0 (fishing report aggregator)")
         context.set_default_timeout(30_000)
 
         try:
@@ -45,13 +43,15 @@ class BaseScraper(ABC):
 
                     raw_html = await page.content()
                     content_hash = hashlib.sha256(content.encode()).hexdigest()
-                    results.append({
-                        "source_name": self.name,
-                        "source_url": absolute_url,
-                        "raw_html": raw_html,
-                        "content_hash": content_hash,
-                        "fetched_at": datetime.now(timezone.utc).isoformat(),
-                    })
+                    results.append(
+                        {
+                            "source_name": self.name,
+                            "source_url": absolute_url,
+                            "raw_html": raw_html,
+                            "content_hash": content_hash,
+                            "fetched_at": datetime.now(UTC).isoformat(),
+                        }
+                    )
                 except Exception:
                     logger.exception(f"[{self.name}] Error on {post_url}")
                     continue
