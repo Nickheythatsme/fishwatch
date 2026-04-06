@@ -25,6 +25,8 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
 
     rows = []
     for entry in entries:
+        if not isinstance(entry, dict):
+            continue
         rows.append(
             {
                 "raw_report_id": raw_report_id,

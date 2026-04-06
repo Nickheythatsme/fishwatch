@@ -190,6 +190,7 @@ def run() -> None:
                 except Exception:
                     logger.exception(f"  DB insert error for water body: {wb_name}")
                     cur.execute("ROLLBACK TO SAVEPOINT extract_insert")
+                    cur.execute("RELEASE SAVEPOINT extract_insert")
 
             # Only mark as processed if at least one row was inserted,
             # or if Claude returned no extractable entries (nothing to retry)
