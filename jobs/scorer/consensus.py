@@ -1,5 +1,7 @@
 """Score multi-source agreement for a water body."""
 
+from __future__ import annotations
+
 from .sentiment_score import SENTIMENT_VALUES
 
 

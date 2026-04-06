@@ -1,5 +1,7 @@
 """Compute weighted composite signal from sub-scores."""
 
+from __future__ import annotations
+
 # Weights for each component
 WEIGHTS = {
     "flow": 0.35,

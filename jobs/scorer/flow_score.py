@@ -1,5 +1,7 @@
 """Score flow conditions vs ideal range for each water body."""
 
+from __future__ import annotations
+
 from scraper.config import IDEAL_FLOW_RANGES
 
 

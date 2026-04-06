@@ -1,9 +1,11 @@
 """Entry point for the LLM extraction job.
 
-Processes unprocessed raw reports through Claude to extract structured data.
+Processes unprocessed raw reports through Claude Sonnet to extract structured
+fishing condition data, one parsed_report row per water body mentioned.
 """
 
 import json
+import logging
 import os
 
 import anthropic
@@ -16,105 +18,199 @@ from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# CSS selectors for extracting report text from HTML, per source.
+# These mirror the scraper extract_content selectors.
+CONTENT_SELECTORS = {
+    "confluence_fly_shop": ".progression-blog-content, .entry-content, article",
+    "fly_fishers_place": ".entry-content, .site-content .entry-content, article .entry-content",
+    "fly_and_field": ".article__content.rte, .article__content, .rte",
+    "deschutes_angler": ".rte, article .blog-post, article",
+    "deschutes_camp": ".progression-blog-content, .entry-content, article",
+    "odfw_central_zone": "#main-content, .field--name-body, .node__content",
+}
+
+# Shops that primarily cover a specific water body when ambiguous
+SOURCE_DEFAULT_WATER_BODY = {
+    "deschutes_angler": "Lower Deschutes River",
+    "deschutes_camp": "Lower Deschutes River",
+}
+
+# Max characters of extracted text to send to Claude
+MAX_CONTENT_LENGTH = 20000
+
+
+def extract_text_from_html(html: str, source_name: str) -> str:
+    """Extract the main report text from raw HTML using BS4."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Try source-specific selectors first
+    selectors = CONTENT_SELECTORS.get(source_name, "")
+    for selector in selectors.split(","):
+        selector = selector.strip()
+        if not selector:
+            continue
+        el = soup.select_one(selector)
+        if el:
+            text = el.get_text(separator="\n", strip=True)
+            if len(text) > 100:  # Only use if we got meaningful content
+                return text
+
+    # Fallback: strip common non-content elements and use body text
+    for tag in soup.find_all(["nav", "header", "footer", "script", "style", "noscript"]):
+        tag.decompose()
+    return soup.get_text(separator="\n", strip=True)
+
 
 def run() -> None:
     conn = get_connection()
     cur = conn.cursor()
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    # Fetch unprocessed reports
-    cur.execute(
-        "SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE"
-    )
-    reports = [
-        {"id": str(row[0]), "source_name": row[1], "raw_html": row[2]}
-        for row in cur.fetchall()
-    ]
+    try:
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    if not reports:
-        print("No unprocessed reports found")
-        conn.close()
-        return
-
-    # Load water body name → id mapping
-    cur.execute("SELECT id, name, slug FROM water_bodies")
-    name_to_id: dict[str, str] = {}
-    for row in cur.fetchall():
-        wb_id, name, slug = str(row[0]), row[1], row[2]
-        name_to_id[name.lower()] = wb_id
-        name_to_id[slug] = wb_id
-
-    for report in reports:
-        print(f"Processing {report['source_name']} ({report['id']})")
-
-        # Extract text from HTML
-        soup = BeautifulSoup(report["raw_html"], "html.parser")
-        text = soup.get_text(separator="\n", strip=True)
-
-        # Truncate if too long for the model
-        if len(text) > 15000:
-            text = text[:15000]
-
-        prompt = EXTRACTION_USER_PROMPT.format(report_content=text)
-
-        try:
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=4096,
-                system=EXTRACTION_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        except Exception as e:
-            print(f"  Claude API error: {e}")
-            continue
-
-        raw_json = response.content[0].text
-        rows = parse_extraction(raw_json, report["id"], report["source_name"])
-
-        for row in rows:
-            # Resolve water_body_id from name
-            wb_name = row.pop("_water_body_name", None)
-            water_body_id = None
-            if wb_name:
-                water_body_id = name_to_id.get(wb_name.lower())
-
-            cur.execute(
-                """
-                INSERT INTO parsed_reports
-                    (raw_report_id, water_body_id, source_name, report_date, sentiment,
-                     species_mentioned, fly_patterns_mentioned, conditions_summary,
-                     flow_commentary, water_clarity, raw_extraction)
-                VALUES (%(raw_report_id)s, %(water_body_id)s, %(source_name)s, %(report_date)s,
-                        %(sentiment)s, %(species_mentioned)s, %(fly_patterns_mentioned)s,
-                        %(conditions_summary)s, %(flow_commentary)s, %(water_clarity)s,
-                        %(raw_extraction)s)
-                """,
-                {
-                    "raw_report_id": row["raw_report_id"],
-                    "water_body_id": water_body_id,
-                    "source_name": row["source_name"],
-                    "report_date": row.get("report_date"),
-                    "sentiment": row.get("sentiment"),
-                    "species_mentioned": row.get("species_mentioned", []),
-                    "fly_patterns_mentioned": row.get("fly_patterns_mentioned", []),
-                    "conditions_summary": row.get("conditions_summary"),
-                    "flow_commentary": row.get("flow_commentary"),
-                    "water_clarity": row.get("water_clarity"),
-                    "raw_extraction": json.dumps(row.get("raw_extraction")),
-                },
-            )
-
-        # Mark as processed
+        # Fetch unprocessed reports
         cur.execute(
-            "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
-            (report["id"],),
+            "SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE"
         )
-        conn.commit()
+        reports = [
+            {"id": str(row[0]), "source_name": row[1], "raw_html": row[2]}
+            for row in cur.fetchall()
+        ]
 
-        print(f"  Extracted {len(rows)} entries")
+        if not reports:
+            logger.info("No unprocessed reports found")
+            return
 
-    cur.close()
-    conn.close()
+        logger.info(f"Processing {len(reports)} unprocessed reports")
+
+        # Load water body name → id mapping
+        cur.execute("SELECT id, name, slug FROM water_bodies")
+        name_to_id: dict[str, str] = {}
+        for row in cur.fetchall():
+            wb_id, name, slug = str(row[0]), row[1], row[2]
+            name_to_id[name.lower()] = wb_id
+            name_to_id[slug] = wb_id
+
+        total_extracted = 0
+
+        for report in reports:
+            logger.info(f"Processing {report['source_name']} ({report['id'][:8]}...)")
+
+            # Extract text from HTML
+            text = extract_text_from_html(report["raw_html"], report["source_name"])
+
+            if len(text) < 50:
+                logger.warning(f"  Skipping: extracted text too short ({len(text)} chars)")
+                cur.execute(
+                    "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
+                    (report["id"],),
+                )
+                conn.commit()
+                continue
+
+            # Truncate if too long
+            if len(text) > MAX_CONTENT_LENGTH:
+                text = text[:MAX_CONTENT_LENGTH]
+
+            prompt = EXTRACTION_USER_PROMPT.format(report_content=text)
+
+            try:
+                response = client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=8192,
+                    system=EXTRACTION_SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+            except Exception:
+                logger.exception("  Claude API error")
+                continue
+
+            raw_json = response.content[0].text
+            rows = parse_extraction(raw_json, report["id"], report["source_name"])
+
+            if not rows:
+                logger.warning(f"  No entries extracted from {report['source_name']}")
+
+            rows_inserted = 0
+            for row in rows:
+                # Resolve water_body_id from name
+                wb_name = row.pop("_water_body_name", None)
+                water_body_id = None
+                if wb_name:
+                    # Try exact match
+                    water_body_id = name_to_id.get(wb_name.lower())
+                    # Try matching just the key part of the name
+                    if not water_body_id:
+                        for known_name, wid in name_to_id.items():
+                            if wb_name.lower() in known_name or known_name in wb_name.lower():
+                                water_body_id = wid
+                                break
+                # Fall back to source default
+                if not water_body_id:
+                    default_name = SOURCE_DEFAULT_WATER_BODY.get(report["source_name"])
+                    if default_name:
+                        water_body_id = name_to_id.get(default_name.lower())
+
+                try:
+                    cur.execute("SAVEPOINT extract_insert")
+                    cur.execute(
+                        """
+                        INSERT INTO parsed_reports
+                            (raw_report_id, water_body_id, source_name, report_date,
+                             sentiment, species_mentioned, fly_patterns_mentioned,
+                             conditions_summary, flow_commentary, water_clarity,
+                             hatches, river_section, raw_extraction)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            row["raw_report_id"],
+                            water_body_id,
+                            row["source_name"],
+                            row.get("report_date"),
+                            row.get("sentiment"),
+                            row.get("species_mentioned", []),
+                            row.get("fly_patterns_mentioned", []),
+                            row.get("conditions_summary"),
+                            row.get("flow_commentary"),
+                            row.get("water_clarity"),
+                            json.dumps(row.get("hatches", [])),
+                            row.get("river_section"),
+                            json.dumps(row.get("raw_extraction")),
+                        ),
+                    )
+                    cur.execute("RELEASE SAVEPOINT extract_insert")
+                    total_extracted += 1
+                    rows_inserted += 1
+                except Exception:
+                    logger.exception(f"  DB insert error for water body: {wb_name}")
+                    cur.execute("ROLLBACK TO SAVEPOINT extract_insert")
+                    cur.execute("RELEASE SAVEPOINT extract_insert")
+
+            # Only mark as processed if at least one row was inserted,
+            # or if Claude returned no extractable entries (nothing to retry)
+            if rows_inserted > 0 or not rows:
+                cur.execute(
+                    "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
+                    (report["id"],),
+                )
+            conn.commit()
+
+            logger.info(f"  Extracted {len(rows)} entries")
+
+        logger.info(f"Extraction complete. {total_extracted} parsed reports created.")
+
+    except Exception:
+        logger.exception("Fatal error in extraction job")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -325,13 +325,28 @@ hatches: (parent) => parent.hatches ?? [],
 riverSection: (parent) => parent.river_section,
 ```
 
-### 3.8 Verification checklist
-- [ ] Migration runs without error on Supabase
-- [ ] Extraction prompt produces hatches and river_section in Claude's response
-- [ ] Parser correctly maps new fields into parsed_reports rows
-- [ ] Fuzzy matching resolves "the Deschutes" to the correct water body for each shop
-- [ ] GraphQL returns new fields
-- [ ] `npm run build` passes with schema changes
+### 3.8 Implementation notes (completed)
+
+**Model**: Claude Sonnet 4.6 (`claude-sonnet-4-6`) with `max_tokens=8192` (increased from 4096 to avoid truncated JSON).
+
+**HTML-to-text extraction**: The extractor uses BeautifulSoup with per-source CSS selectors (mirroring the scraper selectors) to strip nav/ads before sending to Claude. Falls back to stripping `<nav>`, `<header>`, `<footer>`, `<script>`, `<style>` tags and using body text.
+
+**Fuzzy matching**: Three-tier approach:
+1. Exact match on `name.lower()` or `slug`
+2. Substring match (e.g. "Crooked" matches "Crooked River")
+3. Source default fallback (`deschutes_angler` → Lower Deschutes)
+
+**Sentiment resolver fix**: DB stores lowercase (`"good"`), GraphQL enum expects uppercase (`GOOD`). Added `.toUpperCase()` in the report resolver.
+
+### 3.9 Verification checklist
+- [x] Migration runs without error on Supabase
+- [x] Extraction prompt produces hatches and river_section in Claude's response
+- [x] Parser correctly maps new fields into parsed_reports rows
+- [x] 103 parsed reports created across all 11 water bodies
+- [x] All 103 reports matched to a water_body_id (100% match rate)
+- [x] GraphQL returns new fields including hatches and riverSection
+- [x] `npm run build` passes with schema changes
+- [x] Scorer produces scores for water bodies with data
 
 ---
 

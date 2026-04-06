@@ -62,6 +62,8 @@ CREATE TABLE parsed_reports (
     conditions_summary TEXT,                 -- LLM-generated plain English summary
     flow_commentary TEXT,                    -- What the report says about flows
     water_clarity TEXT,                      -- "clear", "off-color", "muddy", etc.
+    hatches JSONB NOT NULL DEFAULT '[]'::jsonb,  -- Array of {name, stage, timing} objects
+    river_section TEXT,                      -- Specific section or access point mentioned
     raw_extraction JSONB,                    -- Full Claude extraction JSON
     extracted_at TIMESTAMPTZ DEFAULT NOW()
 );

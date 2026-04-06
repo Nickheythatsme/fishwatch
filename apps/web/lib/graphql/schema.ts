@@ -66,7 +66,15 @@ export const typeDefs = /* GraphQL */ `
     conditionsSummary: String
     flowCommentary: String
     waterClarity: String
+    hatches: [Hatch!]!
+    riverSection: String
     waterBody: WaterBody
+  }
+
+  type Hatch {
+    name: String!
+    stage: String
+    timing: String
   }
 
   type GaugeReading {

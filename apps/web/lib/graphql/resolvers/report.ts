@@ -33,9 +33,16 @@ export const reportResolvers = {
       (parent.species_mentioned as string[]) ?? [],
     flyPatternsMentioned: (parent: Record<string, unknown>) =>
       (parent.fly_patterns_mentioned as string[]) ?? [],
+    sentiment: (parent: Record<string, unknown>) => {
+      const val = parent.sentiment as string | null
+      return val ? val.toUpperCase() : null
+    },
     conditionsSummary: (parent: Record<string, unknown>) => parent.conditions_summary,
     flowCommentary: (parent: Record<string, unknown>) => parent.flow_commentary,
     waterClarity: (parent: Record<string, unknown>) => parent.water_clarity,
+    hatches: (parent: Record<string, unknown>) =>
+      (parent.hatches as Record<string, unknown>[]) ?? [],
+    riverSection: (parent: Record<string, unknown>) => parent.river_section,
     waterBody: async (parent: Record<string, unknown>, _: unknown, ctx: GraphQLContext) => {
       if (!parent.water_body_id) return null
       const { data } = await ctx.supabase
