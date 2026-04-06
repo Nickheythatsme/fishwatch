@@ -79,7 +79,7 @@ jobs:
           cache-dependency-path: jobs/pyproject.toml
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install ".[dev]"
 
       - name: Lint
         run: ruff check .

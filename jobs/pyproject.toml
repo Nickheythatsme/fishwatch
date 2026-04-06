@@ -12,6 +12,12 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
+[tool.setuptools]
+py-modules = ["db"]
+
+[tool.setuptools.packages.find]
+include = ["scraper*", "extractor*", "scorer*"]
+
 [project.optional-dependencies]
 dev = [
     "ruff>=0.4.0",
