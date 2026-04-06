@@ -133,8 +133,8 @@ def run() -> int:
             raw_json = response.content[0].text
             try:
                 rows = parse_extraction(raw_json, report["id"], report["source_name"])
-            except ExtractionParseError:
-                logger.error(f"  Unparseable response for {report['source_name']} ({report['id'][:8]}...)")
+            except ExtractionParseError as e:
+                logger.error(f"  Unparseable response for {report['source_name']} ({report['id'][:8]}...): {e}")
                 failures += 1
                 continue
 
@@ -195,6 +195,7 @@ def run() -> int:
                     logger.exception(f"  DB insert error for water body: {wb_name}")
                     cur.execute("ROLLBACK TO SAVEPOINT extract_insert")
                     cur.execute("RELEASE SAVEPOINT extract_insert")
+                    failures += 1
 
             # Only mark as processed if at least one row was inserted,
             # or if Claude returned no extractable entries (nothing to retry)

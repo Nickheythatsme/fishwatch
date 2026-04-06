@@ -75,6 +75,7 @@ async def main() -> int:
                             logger.exception(f"DB error for {result['source_url']}")
                             cur.execute("ROLLBACK TO SAVEPOINT raw_report_insert")
                             cur.execute("RELEASE SAVEPOINT raw_report_insert")
+                            failures += 1
             finally:
                 await browser.close()
 
