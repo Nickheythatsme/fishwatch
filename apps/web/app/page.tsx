@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { gql, useQuery } from '@apollo/client'
+import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { SignalCard } from '@/components/signals/SignalCard'
 import { isNoDataSignal } from '@/components/signals/score-utils'
@@ -37,6 +38,8 @@ const DASHBOARD_QUERY = gql`
 
 type SortOption = 'signal' | 'name' | 'updated' | 'flow'
 
+const VALID_SORTS: SortOption[] = ['signal', 'name', 'updated', 'flow']
+
 const SORT_OPTIONS: { key: SortOption; label: string }[] = [
   { key: 'signal', label: 'Best Signal' },
   { key: 'name', label: 'Name' },
@@ -44,7 +47,27 @@ const SORT_OPTIONS: { key: SortOption; label: string }[] = [
   { key: 'flow', label: 'Current Flow' },
 ]
 
-function sortWaterBodies(waterBodies: any[], sortBy: SortOption): any[] {
+interface DashboardWaterBody {
+  id: string
+  name: string
+  slug: string
+  latitude: number
+  longitude: number
+  typicalSpecies: string[]
+  currentFlow: number | null
+  currentSignal: {
+    compositeScore: number
+    flowScore: number | null
+    sentimentScore: number | null
+    consensusScore: number | null
+    summary: string | null
+    recommendedFlies: string[]
+    recommendedSpecies: string[]
+    scoreDate: string
+  } | null
+}
+
+function sortWaterBodies(waterBodies: DashboardWaterBody[], sortBy: SortOption): DashboardWaterBody[] {
   return [...waterBodies].sort((a, b) => {
     switch (sortBy) {
       case 'signal': {
@@ -53,7 +76,7 @@ function sortWaterBodies(waterBodies: any[], sortBy: SortOption): any[] {
         if (aNoData && !bNoData) return 1
         if (!aNoData && bNoData) return -1
         if (aNoData && bNoData) return a.name.localeCompare(b.name)
-        return b.currentSignal.compositeScore - a.currentSignal.compositeScore
+        return b.currentSignal!.compositeScore - a.currentSignal!.compositeScore
       }
       case 'name':
         return a.name.localeCompare(b.name)
@@ -80,10 +103,35 @@ function sortWaterBodies(waterBodies: any[], sortBy: SortOption): any[] {
 }
 
 export default function DashboardPage() {
-  const { data, loading, error } = useQuery(DASHBOARD_QUERY)
-  const [sortBy, setSortBy] = useState<SortOption>('signal')
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
+  )
+}
 
-  const waterBodies = data?.waterBodies ?? []
+function DashboardContent() {
+  const { data, loading, error } = useQuery(DASHBOARD_QUERY)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const rawSort = searchParams.get('sort')
+  const sortBy: SortOption = VALID_SORTS.includes(rawSort as SortOption)
+    ? (rawSort as SortOption)
+    : 'signal'
+
+  function setSortBy(opt: SortOption) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (opt === 'signal') {
+      params.delete('sort')
+    } else {
+      params.set('sort', opt)
+    }
+    const qs = params.toString()
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false })
+  }
+
+  const waterBodies: DashboardWaterBody[] = data?.waterBodies ?? []
   const sortedWaterBodies = useMemo(
     () => sortWaterBodies(waterBodies, sortBy),
     [waterBodies, sortBy]
@@ -118,11 +166,13 @@ export default function DashboardPage() {
 
       <FishingMap waterBodies={waterBodies} />
 
-      <div className="mt-8 flex items-center gap-2">
+      <div className="mt-8 flex items-center gap-2" role="radiogroup" aria-label="Sort water bodies">
         <span className="text-sm font-medium text-gray-500">Sort:</span>
         {SORT_OPTIONS.map((opt) => (
           <button
             key={opt.key}
+            role="radio"
+            aria-checked={sortBy === opt.key}
             onClick={() => setSortBy(opt.key)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               sortBy === opt.key
@@ -136,7 +186,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sortedWaterBodies.map((wb: any) => (
+        {sortedWaterBodies.map((wb) => (
           <SignalCard key={wb.id} waterBody={wb} />
         ))}
       </div>
