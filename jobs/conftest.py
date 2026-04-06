@@ -1,1 +1,1 @@
-# conftest.py — marks jobs/ as the pytest root
+# Local pytest configuration for tests under jobs/.

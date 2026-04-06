@@ -15,6 +15,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: read
     outputs:
       web: ${{ steps.filter.outputs.web }}
@@ -22,6 +23,8 @@ jobs:
       db: ${{ steps.filter.outputs.db }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -32,10 +35,13 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
               - 'turbo.json'
+              - '.github/workflows/ci.yml'
             python:
               - 'jobs/**'
+              - '.github/workflows/ci.yml'
             db:
               - 'packages/db/**'
+              - '.github/workflows/ci.yml'
 
   # ─── Frontend / Web ─────────────────────────────────────────
   web:
@@ -106,4 +112,4 @@ jobs:
       - run: npm ci
 
       - name: Type check
-        run: npx tsc --noEmit -p apps/web/tsconfig.json
+        run: npx tsc --noEmit -p packages/db/tsconfig.json
