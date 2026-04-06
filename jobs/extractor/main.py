@@ -137,6 +137,7 @@ def run() -> None:
             if not rows:
                 logger.warning(f"  No entries extracted from {report['source_name']}")
 
+            rows_inserted = 0
             for row in rows:
                 # Resolve water_body_id from name
                 wb_name = row.pop("_water_body_name", None)
@@ -185,15 +186,18 @@ def run() -> None:
                     )
                     cur.execute("RELEASE SAVEPOINT extract_insert")
                     total_extracted += 1
+                    rows_inserted += 1
                 except Exception:
                     logger.exception(f"  DB insert error for water body: {wb_name}")
                     cur.execute("ROLLBACK TO SAVEPOINT extract_insert")
 
-            # Mark as processed
-            cur.execute(
-                "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
-                (report["id"],),
-            )
+            # Only mark as processed if at least one row was inserted,
+            # or if Claude returned no extractable entries (nothing to retry)
+            if rows_inserted > 0 or not rows:
+                cur.execute(
+                    "UPDATE raw_reports SET is_processed = TRUE WHERE id = %s",
+                    (report["id"],),
+                )
             conn.commit()
 
             logger.info(f"  Extracted {len(rows)} entries")

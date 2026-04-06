@@ -31,12 +31,12 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
                 "source_name": source_name,
                 "report_date": entry.get("report_date"),
                 "sentiment": _normalize_sentiment(entry.get("sentiment")),
-                "species_mentioned": entry.get("species", []),
-                "fly_patterns_mentioned": entry.get("fly_patterns", []),
+                "species_mentioned": entry.get("species") or [],
+                "fly_patterns_mentioned": entry.get("fly_patterns") or [],
                 "conditions_summary": entry.get("conditions_summary"),
                 "flow_commentary": entry.get("flow_commentary"),
                 "water_clarity": entry.get("water_clarity"),
-                "hatches": entry.get("hatches", []),
+                "hatches": _normalize_hatches(entry.get("hatches")),
                 "river_section": entry.get("river_section"),
                 "raw_extraction": entry,
                 "_water_body_name": entry.get("water_body"),
@@ -51,3 +51,22 @@ def _normalize_sentiment(value: Any) -> str | None:
         return None
     normalized = str(value).lower().strip()
     return normalized if normalized in VALID_SENTIMENTS else None
+
+
+def _normalize_hatches(value: Any) -> list[dict]:
+    """Validate and normalize hatches array. Each hatch must have a 'name' field."""
+    if not value or not isinstance(value, list):
+        return []
+    valid = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if not name or not isinstance(name, str):
+            continue
+        valid.append({
+            "name": name,
+            "stage": item.get("stage") if isinstance(item.get("stage"), str) else None,
+            "timing": item.get("timing") if isinstance(item.get("timing"), str) else None,
+        })
+    return valid

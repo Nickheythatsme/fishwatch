@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Aggregate sentiment from parsed reports into a numeric score."""
+
+from __future__ import annotations
 
 SENTIMENT_VALUES = {
     "excellent": 10.0,

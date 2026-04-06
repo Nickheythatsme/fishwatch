@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Compute weighted composite signal from sub-scores."""
+
+from __future__ import annotations
 
 # Weights for each component
 WEIGHTS = {
