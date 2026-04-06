@@ -111,11 +111,14 @@ export default function WaterBodyPage() {
         {wb.currentSignal && (
           <section>
             <h2 className="mb-3 text-lg font-semibold">Signal Breakdown</h2>
-            <ScoreBreakdown signal={wb.currentSignal} />
-            {wb.currentSignal.summary && (
+            <ScoreBreakdown
+              signal={wb.currentSignal}
+              noData={isNoDataSignal(wb.currentSignal)}
+            />
+            {!isNoDataSignal(wb.currentSignal) && wb.currentSignal.summary && (
               <p className="mt-3 text-sm text-gray-700">{wb.currentSignal.summary}</p>
             )}
-            {wb.currentSignal.recommendedFlies.length > 0 && (
+            {!isNoDataSignal(wb.currentSignal) && wb.currentSignal.recommendedFlies.length > 0 && (
               <div className="mt-3">
                 <h3 className="text-sm font-medium text-gray-600">Recommended Flies</h3>
                 <div className="mt-1 flex flex-wrap gap-1">

@@ -7,13 +7,6 @@ interface Signal {
   consensusScore?: number | null
 }
 
-function barColor(score: number): string {
-  if (score >= 8) return 'bg-green-500'
-  if (score >= 6) return 'bg-yellow-500'
-  if (score >= 4) return 'bg-orange-500'
-  return 'bg-red-500'
-}
-
 function ScoreBar({
   label,
   score,
@@ -31,7 +24,7 @@ function ScoreBar({
       <span className="w-28 text-sm text-gray-600">{label}</span>
       <div className="h-2 flex-1 rounded-full bg-gray-200">
         <div
-          className={`h-2 rounded-full ${barColor(score)}`}
+          className={`h-2 rounded-full ${scoreToColor(score)}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -47,7 +40,15 @@ function ScoreBar({
   )
 }
 
-export function ScoreBreakdown({ signal }: { signal: Signal }) {
+export function ScoreBreakdown({ signal, noData }: { signal: Signal; noData?: boolean }) {
+  if (noData) {
+    return (
+      <div className="rounded-lg border bg-white p-4 text-center text-sm text-gray-400">
+        No signal data available for this water body.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2 rounded-lg border bg-white p-4">
       <ScoreBar label="Overall Signal" score={signal.compositeScore} showLabel />

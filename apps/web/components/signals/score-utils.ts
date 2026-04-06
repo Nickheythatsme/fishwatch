@@ -1,15 +1,15 @@
 export function scoreToColor(score: number): string {
-  if (score >= 8) return 'bg-green-500'
-  if (score >= 6) return 'bg-yellow-500'
-  if (score >= 4) return 'bg-orange-500'
-  return 'bg-red-500'
+  if (score >= 8) return 'bg-signal-great'
+  if (score >= 6) return 'bg-signal-good'
+  if (score >= 4) return 'bg-signal-fair'
+  return 'bg-signal-poor'
 }
 
 export function scoreToTextColor(score: number): string {
-  if (score >= 8) return 'text-green-600'
-  if (score >= 6) return 'text-yellow-600'
-  if (score >= 4) return 'text-orange-600'
-  return 'text-red-600'
+  if (score >= 8) return 'text-signal-great'
+  if (score >= 6) return 'text-signal-good'
+  if (score >= 4) return 'text-signal-fair'
+  return 'text-signal-poor'
 }
 
 export function scoreToLabel(score: number): string {
@@ -38,14 +38,24 @@ export function isNoDataSignal(
 }
 
 export function relativeTime(dateStr: string): string {
-  const now = new Date()
-  const then = new Date(dateStr)
-  const diffMs = now.getTime() - then.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  // Parse as YYYY-MM-DD in UTC to avoid timezone offset issues
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return dateStr
 
-  if (diffDays < 0) return 'Today'
-  if (diffDays === 0) return 'Today'
+  const thenUtc = Date.UTC(
+    parseInt(parts[0], 10),
+    parseInt(parts[1], 10) - 1,
+    parseInt(parts[2], 10)
+  )
+  const nowUtc = Date.UTC(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    new Date().getDate()
+  )
+  const diffDays = Math.floor((nowUtc - thenUtc) / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return 'Today'
   if (diffDays === 1) return '1d ago'
   if (diffDays <= 7) return `${diffDays}d ago`
-  return then.toLocaleDateString()
+  return dateStr
 }
