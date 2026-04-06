@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 VALID_SENTIMENTS = {"excellent", "good", "fair", "poor", "off"}
 
 
+class ExtractionParseError(Exception):
+    """Raised when Claude returns unparseable JSON."""
+
+
 def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> list[dict]:
     """Parse Claude's JSON response into parsed_report rows."""
     try:
@@ -18,7 +22,7 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON from Claude: {e}")
         logger.debug(f"Raw JSON: {raw_json[:500]}")
-        return []
+        raise ExtractionParseError(str(e)) from e
 
     if not isinstance(entries, list):
         entries = [entries]
