@@ -19,7 +19,6 @@ def score_flow(slug: str, current_flow: float | None) -> float | None:
         return None
 
     low, high = ideal
-    mid = (low + high) / 2
     range_width = high - low
 
     if low <= current_flow <= high:
@@ -32,5 +31,5 @@ def score_flow(slug: str, current_flow: float | None) -> float | None:
         deviation = (current_flow - high) / range_width
 
     # Exponential decay — score drops to ~5 at 0.5x range width deviation
-    score = 10.0 * (0.5 ** deviation)
+    score = 10.0 * (0.5**deviation)
     return round(max(0.0, min(10.0, score)), 1)
