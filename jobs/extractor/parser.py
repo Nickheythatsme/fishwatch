@@ -66,9 +66,11 @@ def _normalize_hatches(value: Any) -> list[dict]:
         name = item.get("name")
         if not name or not isinstance(name, str):
             continue
-        valid.append({
-            "name": name,
-            "stage": item.get("stage") if isinstance(item.get("stage"), str) else None,
-            "timing": item.get("timing") if isinstance(item.get("timing"), str) else None,
-        })
+        valid.append(
+            {
+                "name": name,
+                "stage": item.get("stage") if isinstance(item.get("stage"), str) else None,
+                "timing": item.get("timing") if isinstance(item.get("timing"), str) else None,
+            }
+        )
     return valid

@@ -6,11 +6,12 @@ import logging
 from playwright.async_api import async_playwright
 
 from db import get_connection
+
 from .sources.confluence import ConfluenceScraper
-from .sources.fly_fishers import FlyFishersScraper
-from .sources.fly_and_field import FlyAndFieldScraper
 from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
+from .sources.fly_and_field import FlyAndFieldScraper
+from .sources.fly_fishers import FlyFishersScraper
 from .sources.odfw import ODFWScraper
 
 logging.basicConfig(

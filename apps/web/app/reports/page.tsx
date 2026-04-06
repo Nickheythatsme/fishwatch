@@ -54,7 +54,6 @@ export default function ReportsPage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Fishing Reports</h1>
       <div className="space-y-4">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {reports.map((report: any) => (
           <ReportCard key={report.id} report={report} />
         ))}

@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from db import get_connection
+
 from .parser import parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 
@@ -75,13 +76,8 @@ def run() -> None:
         client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
         # Fetch unprocessed reports
-        cur.execute(
-            "SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE"
-        )
-        reports = [
-            {"id": str(row[0]), "source_name": row[1], "raw_html": row[2]}
-            for row in cur.fetchall()
-        ]
+        cur.execute("SELECT id, source_name, raw_html FROM raw_reports WHERE is_processed = FALSE")
+        reports = [{"id": str(row[0]), "source_name": row[1], "raw_html": row[2]} for row in cur.fetchall()]
 
         if not reports:
             logger.info("No unprocessed reports found")

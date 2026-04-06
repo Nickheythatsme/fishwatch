@@ -4,9 +4,10 @@ Computes composite fishing signals for each water body.
 """
 
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from db import get_connection
+
 from .composite import compute_composite
 from .consensus import score_consensus
 from .flow_score import score_flow
@@ -22,10 +23,7 @@ def run() -> None:
 
     # Get all water bodies
     cur.execute("SELECT id, slug, name FROM water_bodies")
-    water_bodies = [
-        {"id": str(row[0]), "slug": row[1], "name": row[2]}
-        for row in cur.fetchall()
-    ]
+    water_bodies = [{"id": str(row[0]), "slug": row[1], "name": row[2]} for row in cur.fetchall()]
 
     for wb in water_bodies:
         wb_id = wb["id"]
@@ -83,10 +81,7 @@ def run() -> None:
         summary_parts = []
         if s_score is not None:
             sentiment_label = (
-                "excellent" if s_score >= 8
-                else "good" if s_score >= 6
-                else "fair" if s_score >= 4
-                else "poor"
+                "excellent" if s_score >= 8 else "good" if s_score >= 6 else "fair" if s_score >= 4 else "poor"
             )
             summary_parts.append(f"Reports indicate {sentiment_label} conditions")
         if current_flow is not None:
@@ -123,7 +118,7 @@ def run() -> None:
                 list(flies),
                 summary,
                 json.dumps({"flow_cfs": current_flow, "report_count": len(recent_reports)}),
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
 

@@ -1,10 +1,11 @@
 """USGS Water Services API client for gauge readings."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
 from db import get_connection
+
 from ..config import USGS_BASE_URL, USGS_PARAMS, USGS_STATIONS
 
 # USGS parameter codes
@@ -50,7 +51,7 @@ def fetch_gauge_data() -> list[dict]:
                         "flow_cfs": None,
                         "gauge_height_ft": None,
                         "water_temp_f": None,
-                        "fetched_at": datetime.now(timezone.utc).isoformat(),
+                        "fetched_at": datetime.now(UTC).isoformat(),
                     }
 
                 if param_code == PARAM_FLOW:
@@ -59,9 +60,7 @@ def fetch_gauge_data() -> list[dict]:
                     readings[key]["gauge_height_ft"] = val
                 elif param_code == PARAM_WATER_TEMP:
                     # USGS reports in Celsius, convert to Fahrenheit
-                    readings[key]["water_temp_f"] = (
-                        val * 9 / 5 + 32 if val is not None else None
-                    )
+                    readings[key]["water_temp_f"] = val * 9 / 5 + 32 if val is not None else None
 
     return list(readings.values())
 
@@ -83,8 +82,12 @@ def save_gauge_readings(readings: list[dict]) -> int:
 
         cur.execute(
             """
-            INSERT INTO gauge_readings (station_id, water_body_id, measured_at, flow_cfs, gauge_height_ft, water_temp_f, fetched_at)
-            VALUES (%(station_id)s, %(water_body_id)s, %(measured_at)s, %(flow_cfs)s, %(gauge_height_ft)s, %(water_temp_f)s, %(fetched_at)s)
+            INSERT INTO gauge_readings
+                (station_id, water_body_id, measured_at, flow_cfs,
+                 gauge_height_ft, water_temp_f, fetched_at)
+            VALUES
+                (%(station_id)s, %(water_body_id)s, %(measured_at)s, %(flow_cfs)s,
+                 %(gauge_height_ft)s, %(water_temp_f)s, %(fetched_at)s)
             ON CONFLICT (station_id, measured_at) DO NOTHING
             """,
             {

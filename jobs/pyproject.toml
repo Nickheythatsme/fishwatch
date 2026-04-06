@@ -11,3 +11,27 @@ dependencies = [
     "playwright>=1.44.0",
     "python-dotenv>=1.0.0",
 ]
+
+[tool.setuptools]
+py-modules = ["db"]
+
+[tool.setuptools.packages.find]
+include = ["scraper*", "extractor*", "scorer*"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "pytest>=8.0.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+src = ["."]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"extractor/prompt.py" = ["E501"]
