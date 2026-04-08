@@ -37,7 +37,7 @@ CONTENT_SELECTORS = {
     "fly_fishers_place": ".entry-content, .site-content .entry-content, article .entry-content",
     "fly_and_field": ".article__content.rte, .article__content, .rte",
     "deschutes_angler": ".rte, article .blog-post, article",
-    "deschutes_camp": ".entry-content, .wp-block-post-content, article",
+    "deschutes_camp": ".progression-blog-content, .entry-content, article",
     # Washington fly shops
     "silver_bow": "main",
     # Idaho fly shops
