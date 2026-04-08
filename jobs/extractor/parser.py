@@ -33,6 +33,11 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
     try:
         entries = json.loads(raw_json)
     except json.JSONDecodeError as e:
+        # Claude sometimes returns prose instead of [] when no water bodies match.
+        # Treat non-JSON responses as empty extraction rather than hard failures.
+        if not raw_json.lstrip().startswith(("[", "{")):
+            logger.info(f"Non-JSON response (likely no matching water bodies): {raw_json[:200]}")
+            return []
         logger.error(f"Failed to parse JSON from Claude: {e}")
         logger.debug(f"Raw JSON: {raw_json[:500]}")
         raise ExtractionParseError(str(e)) from e
