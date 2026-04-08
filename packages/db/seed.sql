@@ -46,7 +46,13 @@ INSERT INTO species (name, common_aliases) VALUES
 ('whitefish', ARRAY['mountain whitefish', 'whitie', 'whities', 'rocky mountain whitefish']),
 ('atlantic salmon', ARRAY['atlantic', 'landlocked salmon']),
 ('kokanee', ARRAY['kokanee salmon', 'sockeye']),
-('largemouth bass', ARRAY['largemouth', 'bass', 'bucketmouth']);
+('largemouth bass', ARRAY['largemouth', 'bass', 'bucketmouth']),
+('cutthroat trout', ARRAY['cutthroat', 'cutt', 'cutts', 'coastal cutthroat', 'sea-run cutthroat']),
+('westslope cutthroat trout', ARRAY['westslope', 'westslope cutthroat', 'west slope cutthroat']),
+('chinook salmon', ARRAY['chinook', 'king salmon', 'king', 'spring chinook', 'spring chinook salmon', 'fall chinook']),
+('coho salmon', ARRAY['coho', 'silver salmon', 'silvers']),
+('redband trout', ARRAY['redband', 'redbands', 'klamath redband']),
+('smallmouth bass', ARRAY['smallmouth', 'smallie', 'smallies', 'bronzeback']);
 
 INSERT INTO fly_patterns (name, aliases, category, typical_sizes) VALUES
 ('Blue Wing Olive', ARRAY['BWO', 'Baetis', 'blue wing'], 'dry', '16-22'),
