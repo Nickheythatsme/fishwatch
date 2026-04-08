@@ -50,18 +50,17 @@ async def main() -> int:
     failures = 0
 
     try:
-        # Pre-load existing content hashes so scrapers can skip unchanged pages
-        cur.execute("SELECT source_name, content_hash FROM raw_reports")
-        hashes_by_source: dict[str, set[str]] = {}
-        for row in cur.fetchall():
-            hashes_by_source.setdefault(row[0], set()).add(row[1])
-
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
             try:
                 for scraper in SCRAPERS:
                     try:
-                        known = hashes_by_source.get(scraper.name, set())
+                        # Load known hashes for this source only
+                        cur.execute(
+                            "SELECT content_hash FROM raw_reports WHERE source_name = %s",
+                            (scraper.name,),
+                        )
+                        known = {row[0] for row in cur.fetchall()}
                         results = await scraper.run(browser, known_hashes=known)
                     except Exception:
                         logger.exception(f"Failed to scrape {scraper.name}")
