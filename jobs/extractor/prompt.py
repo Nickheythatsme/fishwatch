@@ -1,11 +1,15 @@
-EXTRACTION_SYSTEM_PROMPT = """You are a structured data extractor for fishing reports from Central Oregon fly shops and agencies.
+EXTRACTION_SYSTEM_PROMPT = """You are a structured data extractor for fishing reports from Pacific Northwest fly shops and agencies.
 Given a fishing report, extract structured information about fishing conditions for each water body mentioned.
 Respond ONLY with valid JSON — no markdown, no preamble, no backticks."""
 
 EXTRACTION_USER_PROMPT = """Extract fishing conditions from this report. Return a JSON array
 where each element represents one water body mentioned in the report.
 
-Match each water body to the closest name from this list of known Central Oregon waters:
+ONLY extract conditions for water bodies from this list. If the report mentions a water body
+not on this list, skip it — do not force-map it to the closest name. Return an empty array
+if no listed water bodies are mentioned.
+
+Central Oregon:
 - Lower Deschutes River (below Pelton Dam, trophy redside water)
 - Upper Deschutes River (through Bend, urban stretch)
 - Middle Deschutes River (between Bend and Lake Billy Chinook)
@@ -17,6 +21,28 @@ Match each water body to the closest name from this list of known Central Oregon
 - East Lake (Newberry Caldera)
 - Davis Lake (shallow fly fishing lake)
 - Tumalo Creek (small mountain stream west of Bend)
+
+Oregon (beyond Central):
+- McKenzie River (below Leaburg Dam, near Eugene)
+- Willamette River (through Eugene/Portland)
+- Hood River (Columbia Gorge, steelhead)
+- Rogue River (Southern Oregon, Holy Water section)
+- North Umpqua River (fly-only steelhead section)
+- Klamath River (below Keno Dam, redband trout)
+- Sandy River (near Portland, steelhead)
+- Clackamas River (near Portland, steelhead)
+
+Washington / Idaho:
+- Spokane River (through Spokane, WA)
+- North Fork Coeur d'Alene River (panhandle Idaho, cutthroat)
+- St. Joe River (Idaho, cutthroat)
+- Grande Ronde River (OR/WA border, steelhead)
+
+Idaho:
+- Silver Creek (spring creek near Sun Valley)
+- Big Wood River (Sun Valley area)
+- Big Lost River (below Mackay Reservoir)
+- South Fork Boise River (mountain tailwater)
 
 If the report just says "the Deschutes" without specifying a section, use context clues
 (shop location, access points mentioned) to determine which section. If still ambiguous,

@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from db import get_connection
+from scraper.sources.odfw import ODFW_ZONES
 
 from .parser import ExtractionParseError, parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
@@ -30,18 +31,27 @@ logger = logging.getLogger(__name__)
 # CSS selectors for extracting report text from HTML, per source.
 # These mirror the scraper extract_content selectors.
 CONTENT_SELECTORS = {
+    # Oregon fly shops
+    "caddis_fly": ".entry-content, article .entry-content",
     "confluence_fly_shop": ".progression-blog-content, .entry-content, article",
     "fly_fishers_place": ".entry-content, .site-content .entry-content, article .entry-content",
     "fly_and_field": ".article__content.rte, .article__content, .rte",
     "deschutes_angler": ".rte, article .blog-post, article",
     "deschutes_camp": ".progression-blog-content, .entry-content, article",
-    "odfw_central_zone": "#main-content, .field--name-body, .node__content",
+    # Washington fly shops
+    "silver_bow": "main",
+    # Idaho fly shops
+    "fly_fish_food": "article .rte, .article__content.rte, .rte",
+    "silver_creek_outfitters": ".post-content, .entry-content",
+    # ODFW zones — generated from the canonical ODFW_ZONES dict in scraper
+    **{name: "#main-content, .field--name-body, .node__content" for name in ODFW_ZONES.values()},
 }
 
 # Shops that primarily cover a specific water body when ambiguous
 SOURCE_DEFAULT_WATER_BODY = {
     "deschutes_angler": "Lower Deschutes River",
     "deschutes_camp": "Lower Deschutes River",
+    "caddis_fly": "McKenzie River",
 }
 
 # Max characters of extracted text to send to Claude

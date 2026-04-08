@@ -8,12 +8,16 @@ from playwright.async_api import async_playwright
 
 from db import get_connection
 
+from .sources.caddis_fly import CaddisFlyScraper
 from .sources.confluence import ConfluenceScraper
 from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
 from .sources.fly_and_field import FlyAndFieldScraper
+from .sources.fly_fish_food import FlyFishFoodScraper
 from .sources.fly_fishers import FlyFishersScraper
-from .sources.odfw import ODFWScraper
+from .sources.odfw import ODFW_ZONES, ODFWScraper
+from .sources.silver_bow import SilverBowScraper
+from .sources.silver_creek_outfitters import SilverCreekOutfittersScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,12 +26,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 SCRAPERS = [
+    # Oregon fly shops
+    CaddisFlyScraper(),
     ConfluenceScraper(),
     FlyFishersScraper(),
     FlyAndFieldScraper(),
     DeschutesAnglerScraper(),
     DeschutesCampScraper(),
-    ODFWScraper(),
+    # Washington fly shops
+    SilverBowScraper(),
+    # Idaho fly shops
+    FlyFishFoodScraper(),
+    SilverCreekOutfittersScraper(),
+    # ODFW zones (Oregon state agency)
+    *[ODFWScraper(zone_slug=zone) for zone in ODFW_ZONES],
 ]
 
 
@@ -43,7 +55,13 @@ async def main() -> int:
             try:
                 for scraper in SCRAPERS:
                     try:
-                        results = await scraper.run(browser)
+                        # Load known hashes for this source only
+                        cur.execute(
+                            "SELECT content_hash FROM raw_reports WHERE source_name = %s",
+                            (scraper.name,),
+                        )
+                        known = {row[0] for row in cur.fetchall()}
+                        results = await scraper.run(browser, known_hashes=known)
                     except Exception:
                         logger.exception(f"Failed to scrape {scraper.name}")
                         failures += 1
