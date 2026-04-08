@@ -12,6 +12,8 @@ class SilverBowScraper(BaseScraper):
     Content in main element.
     """
 
+    single_page = True
+
     def __init__(self):
         super().__init__(
             name="silver_bow",
@@ -22,7 +24,5 @@ class SilverBowScraper(BaseScraper):
         return [self.url]
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector("main")
-        if el:
-            return (await el.inner_text()).strip()
-        return (await page.inner_text("body")).strip()
+        text, self._body_fallback_used = await self._query_content(page, "main")
+        return text

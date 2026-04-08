@@ -25,6 +25,8 @@ class ODFWScraper(BaseScraper):
     Supports all ODFW zones via the zone_slug parameter.
     """
 
+    single_page = True
+
     def __init__(self, zone_slug: str = "central-zone"):
         if zone_slug not in ODFW_ZONES:
             raise ValueError(f"Unknown ODFW zone '{zone_slug}'. Valid zones: {', '.join(ODFW_ZONES)}")
@@ -36,7 +38,7 @@ class ODFWScraper(BaseScraper):
         return [self.url]
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector("#main-content, .field--name-body, .node__content")
-        if el:
-            return (await el.inner_text()).strip()
-        return (await page.inner_text("body")).strip()
+        text, self._body_fallback_used = await self._query_content(
+            page, "#main-content", ".field--name-body", ".node__content"
+        )
+        return text
