@@ -24,7 +24,5 @@ class DeschutesAnglerScraper(BaseScraper):
         return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/")))
 
     async def extract_content(self, page: Page) -> str:
-        text, self._body_fallback_used = await self._query_content(
-            page, ".rte", "article .blog-post", "article"
-        )
+        text, self._body_fallback_used = await self._query_content(page, ".rte", "article .blog-post", "article")
         return text

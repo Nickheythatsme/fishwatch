@@ -93,9 +93,7 @@ class BaseScraper(ABC):
             logger.info(f"[{self.name}] Discovered {len(post_urls)} posts")
 
             if not post_urls and not self.single_page:
-                raise ScraperHealthError(
-                    f"{self.name}: discover_posts returned 0 URLs — possible layout change"
-                )
+                raise ScraperHealthError(f"{self.name}: discover_posts returned 0 URLs — possible layout change")
 
             for post_url in post_urls:
                 try:
@@ -113,9 +111,7 @@ class BaseScraper(ABC):
 
                     if self._body_fallback_used:
                         body_fallback_used = True
-                        logger.warning(
-                            f"[{self.name}] Selector fallback to body on {absolute_url}"
-                        )
+                        logger.warning(f"[{self.name}] Selector fallback to body on {absolute_url}")
 
                     posts_extracted += 1
                     content_hash = hashlib.sha256(content.encode()).hexdigest()

@@ -148,10 +148,7 @@ async def main() -> int:
 
         failures = sum(1 for r in scraper_results if r.status == ScraperStatus.FAILED)
         degraded = sum(1 for r in scraper_results if r.status == ScraperStatus.DEGRADED)
-        logger.info(
-            f"Scrape complete. {total_saved} saved. "
-            f"{failures} failures, {degraded} degraded."
-        )
+        logger.info(f"Scrape complete. {total_saved} saved. {failures} failures, {degraded} degraded.")
 
         _write_summary(scraper_results, db_failures=db_failures)
 
