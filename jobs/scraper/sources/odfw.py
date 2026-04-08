@@ -26,6 +26,8 @@ class ODFWScraper(BaseScraper):
     """
 
     def __init__(self, zone_slug: str = "central-zone"):
+        if zone_slug not in ODFW_ZONES:
+            raise ValueError(f"Unknown ODFW zone '{zone_slug}'. Valid zones: {', '.join(ODFW_ZONES)}")
         name = ODFW_ZONES[zone_slug]
         url = f"{ODFW_BASE_URL}/{zone_slug}"
         super().__init__(name=name, url=url)

@@ -1,11 +1,13 @@
-EXTRACTION_SYSTEM_PROMPT = """You are a structured data extractor for fishing reports from Central Oregon fly shops and agencies.
+EXTRACTION_SYSTEM_PROMPT = """You are a structured data extractor for fishing reports from Pacific Northwest fly shops and agencies.
 Given a fishing report, extract structured information about fishing conditions for each water body mentioned.
 Respond ONLY with valid JSON — no markdown, no preamble, no backticks."""
 
 EXTRACTION_USER_PROMPT = """Extract fishing conditions from this report. Return a JSON array
 where each element represents one water body mentioned in the report.
 
-Match each water body to the closest name from this list of known Pacific Northwest waters:
+ONLY extract conditions for water bodies from this list. If the report mentions a water body
+not on this list, skip it — do not force-map it to the closest name. Return an empty array
+if no listed water bodies are mentioned.
 
 Central Oregon:
 - Lower Deschutes River (below Pelton Dam, trophy redside water)
