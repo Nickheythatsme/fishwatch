@@ -8,12 +8,16 @@ from playwright.async_api import async_playwright
 
 from db import get_connection
 
+from .sources.caddis_fly import CaddisFlyScraper
 from .sources.confluence import ConfluenceScraper
 from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
 from .sources.fly_and_field import FlyAndFieldScraper
 from .sources.fly_fishers import FlyFishersScraper
-from .sources.odfw import ODFWScraper
+from .sources.fly_fish_food import FlyFishFoodScraper
+from .sources.odfw import ODFW_ZONES, ODFWScraper
+from .sources.silver_bow import SilverBowScraper
+from .sources.silver_creek_outfitters import SilverCreekOutfittersScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,12 +26,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 SCRAPERS = [
+    # Oregon fly shops
+    CaddisFlyScraper(),
     ConfluenceScraper(),
     FlyFishersScraper(),
     FlyAndFieldScraper(),
     DeschutesAnglerScraper(),
     DeschutesCampScraper(),
-    ODFWScraper(),
+    # Washington fly shops
+    SilverBowScraper(),
+    # Idaho fly shops
+    FlyFishFoodScraper(),
+    SilverCreekOutfittersScraper(),
+    # ODFW zones (Oregon state agency)
+    *[ODFWScraper(zone_slug=zone) for zone in ODFW_ZONES],
 ]
 
 

@@ -29,18 +29,35 @@ logger = logging.getLogger(__name__)
 # CSS selectors for extracting report text from HTML, per source.
 # These mirror the scraper extract_content selectors.
 CONTENT_SELECTORS = {
+    # Oregon fly shops
+    "caddis_fly": ".entry-content, article .entry-content",
     "confluence_fly_shop": ".progression-blog-content, .entry-content, article",
     "fly_fishers_place": ".entry-content, .site-content .entry-content, article .entry-content",
     "fly_and_field": ".article__content.rte, .article__content, .rte",
     "deschutes_angler": ".rte, article .blog-post, article",
     "deschutes_camp": ".progression-blog-content, .entry-content, article",
+    # Washington fly shops
+    "silver_bow": "main",
+    # Idaho fly shops
+    "fly_fish_food": "article .rte, .article__content.rte, .rte",
+    "silver_creek_outfitters": ".post-content, .entry-content",
+    # ODFW zones (all share the same selectors)
     "odfw_central_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_northwest_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_southwest_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_marine_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_columbia_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_snake_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_southeast_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_northeast_zone": "#main-content, .field--name-body, .node__content",
+    "odfw_willamette_zone": "#main-content, .field--name-body, .node__content",
 }
 
 # Shops that primarily cover a specific water body when ambiguous
 SOURCE_DEFAULT_WATER_BODY = {
     "deschutes_angler": "Lower Deschutes River",
     "deschutes_camp": "Lower Deschutes River",
+    "caddis_fly": "McKenzie River",
 }
 
 # Max characters of extracted text to send to Claude
