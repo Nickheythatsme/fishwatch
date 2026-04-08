@@ -13,8 +13,8 @@ from .sources.confluence import ConfluenceScraper
 from .sources.deschutes_angler import DeschutesAnglerScraper
 from .sources.deschutes_camp import DeschutesCampScraper
 from .sources.fly_and_field import FlyAndFieldScraper
-from .sources.fly_fishers import FlyFishersScraper
 from .sources.fly_fish_food import FlyFishFoodScraper
+from .sources.fly_fishers import FlyFishersScraper
 from .sources.odfw import ODFW_ZONES, ODFWScraper
 from .sources.silver_bow import SilverBowScraper
 from .sources.silver_creek_outfitters import SilverCreekOutfittersScraper
