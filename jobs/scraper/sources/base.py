@@ -5,7 +5,7 @@ import logging
 import os
 import traceback as tb
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 from playwright.async_api import Browser, Page
@@ -38,30 +38,41 @@ class BaseScraper(ABC):
     async def _save_debug_artifacts(self, page: Page, url: str, error: Exception) -> list[str]:
         """Save screenshot, HTML, and error details for debugging. Returns artifact paths."""
         artifact_dir = os.environ.get("SCRAPER_ARTIFACT_DIR", "artifacts")
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        dest = os.path.join(artifact_dir, self.name, timestamp)
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
+        url_hash = hashlib.sha256(url.encode()).hexdigest()[:12]
+        dest = os.path.join(artifact_dir, self.name, f"{timestamp}-{url_hash}")
         paths: list[str] = []
 
         try:
             os.makedirs(dest, exist_ok=True)
+        except Exception:
+            logger.warning(f"[{self.name}] Failed to create artifact directory", exc_info=True)
+            return paths
 
-            screenshot_path = os.path.join(dest, "screenshot.png")
+        screenshot_path = os.path.join(dest, "screenshot.png")
+        try:
             await page.screenshot(path=screenshot_path, full_page=True)
             paths.append(screenshot_path)
+        except Exception:
+            logger.warning(f"[{self.name}] Failed to save screenshot", exc_info=True)
 
-            html_path = os.path.join(dest, "page.html")
+        html_path = os.path.join(dest, "page.html")
+        try:
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(await page.content())
             paths.append(html_path)
+        except Exception:
+            logger.warning(f"[{self.name}] Failed to save HTML snapshot", exc_info=True)
 
-            error_path = os.path.join(dest, "error.txt")
+        error_path = os.path.join(dest, "error.txt")
+        try:
             with open(error_path, "w", encoding="utf-8") as f:
                 f.write(f"URL: {url}\n")
                 f.write(f"Error: {error}\n\n")
-                f.write(tb.format_exc())
+                f.write("".join(tb.format_exception(type(error), error, error.__traceback__)))
             paths.append(error_path)
         except Exception:
-            logger.warning(f"[{self.name}] Failed to save debug artifacts", exc_info=True)
+            logger.warning(f"[{self.name}] Failed to save error details", exc_info=True)
 
         return paths
 
@@ -120,19 +131,21 @@ class BaseScraper(ABC):
                             "source_url": absolute_url,
                             "raw_html": raw_html,
                             "content_hash": content_hash,
-                            "fetched_at": datetime.now(timezone.utc).isoformat(),
+                            "fetched_at": datetime.now(UTC).isoformat(),
                         }
                     )
                 except Exception as exc:
                     logger.exception(f"[{self.name}] Error on {post_url}")
                     posts_failed += 1
-                    artifact_paths.extend(await self._save_debug_artifacts(page, post_url, exc))
+                    artifact_paths.extend(await self._save_debug_artifacts(page, absolute_url, exc))
                     continue
         finally:
             await context.close()
 
         status = ScraperStatus.SUCCESS
-        if posts_failed > 0 or body_fallback_used:
+        if len(post_urls) > 0 and posts_extracted == 0:
+            status = ScraperStatus.FAILED
+        elif posts_failed > 0 or body_fallback_used:
             status = ScraperStatus.DEGRADED
 
         return ScraperResult(

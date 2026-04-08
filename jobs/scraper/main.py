@@ -8,7 +8,7 @@ import logging
 import os
 import sys
 import traceback as tb
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from playwright.async_api import async_playwright
 
@@ -50,16 +50,17 @@ SCRAPERS = [
 ]
 
 
-def _write_summary(scraper_results: list[ScraperResult]) -> None:
+def _write_summary(scraper_results: list[ScraperResult], db_failures: int = 0) -> None:
     """Write a JSON summary of all scraper results to the artifact directory."""
     artifact_dir = os.environ.get("SCRAPER_ARTIFACT_DIR", "artifacts")
     os.makedirs(artifact_dir, exist_ok=True)
     summary_path = os.path.join(artifact_dir, "scrape_summary.json")
     summary = {
-        "run_at": datetime.now(timezone.utc).isoformat(),
+        "run_at": datetime.now(UTC).isoformat(),
         "total_scrapers": len(scraper_results),
         "failed": sum(1 for r in scraper_results if r.status == ScraperStatus.FAILED),
         "degraded": sum(1 for r in scraper_results if r.status == ScraperStatus.DEGRADED),
+        "db_failures": db_failures,
         "results": [r.to_dict() for r in scraper_results],
     }
     with open(summary_path, "w", encoding="utf-8") as f:
@@ -152,7 +153,7 @@ async def main() -> int:
             f"{failures} failures, {degraded} degraded."
         )
 
-        _write_summary(scraper_results)
+        _write_summary(scraper_results, db_failures=db_failures)
 
         return failures + db_failures
     except Exception:
