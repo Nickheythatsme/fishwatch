@@ -16,8 +16,12 @@ class BaseScraper(ABC):
         self.name = name
         self.url = url
 
-    async def run(self, browser: Browser) -> list[dict]:
-        """Scrape using a shared browser instance. Returns list of raw_report dicts."""
+    async def run(self, browser: Browser, known_hashes: set[str] | None = None) -> list[dict]:
+        """Scrape using a shared browser instance. Returns list of raw_report dicts.
+
+        If known_hashes is provided, pages whose content hash is already in the
+        set are skipped — saving memory (no raw_html) and DB round-trips.
+        """
         results: list[dict] = []
         context = await browser.new_context(user_agent="FishSignal/1.0 (fishing report aggregator)")
         context.set_default_timeout(30_000)
@@ -41,8 +45,13 @@ class BaseScraper(ABC):
                         logger.warning(f"[{self.name}] Empty content from {absolute_url}")
                         continue
 
-                    raw_html = await page.content()
                     content_hash = hashlib.sha256(content.encode()).hexdigest()
+
+                    if known_hashes and content_hash in known_hashes:
+                        logger.debug(f"[{self.name}] Unchanged: {absolute_url}")
+                        continue
+
+                    raw_html = await page.content()
                     results.append(
                         {
                             "source_name": self.name,
