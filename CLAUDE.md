@@ -33,12 +33,31 @@ python -m extractor.main         # LLM extraction from raw reports
 python -m scorer.main            # Compute composite signals
 ```
 
-### Testing
+### Pre-commit CI checks
 
-No test framework is configured yet. Verify changes with:
-- `npm run build` — catches TypeScript errors and lint issues
-- `npm run lint` — ESLint only
-- For Python, verify imports work: `cd jobs && python -c "from scraper.main import run; from extractor.main import run; from scorer.main import run"`
+**Before committing, always run the CI checks locally for any project you changed.** Only run checks for the projects you touched — CI uses path-based change detection so unrelated projects are skipped.
+
+**If you changed files under `jobs/`** (Python):
+```bash
+cd jobs
+ruff check .              # Lint
+ruff format --check .     # Format check (use `ruff format .` to auto-fix)
+pytest tests/ -v          # Tests
+```
+
+**If you changed files under `apps/web/` or `packages/db/`** (TypeScript/Next.js):
+```bash
+npm run lint              # ESLint
+npm run build             # Type check + production build
+npm run test              # Tests
+```
+
+**If you changed files under `packages/db/`** (DB types):
+```bash
+npx tsc --noEmit -p packages/db/tsconfig.json
+```
+
+Fix any errors before committing. For Python format issues, run `ruff format .` from the `jobs/` directory to auto-fix.
 
 ## Coding Guidelines
 

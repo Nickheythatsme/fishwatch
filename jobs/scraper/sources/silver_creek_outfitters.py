@@ -26,7 +26,5 @@ class SilverCreekOutfittersScraper(BaseScraper):
         return list(dict.fromkeys(links))
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(".post-content, .entry-content")
-        if el:
-            return (await el.inner_text()).strip()
-        return (await page.inner_text("body")).strip()
+        text, self._body_fallback_used = await self._query_content(page, ".post-content", ".entry-content")
+        return text

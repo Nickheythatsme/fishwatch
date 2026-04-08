@@ -26,7 +26,7 @@ class FlyAndFieldScraper(BaseScraper):
         return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/") and "/tagged/" not in l))
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(".article__content.rte, .article__content, .rte")
-        if el:
-            return (await el.inner_text()).strip()
-        return (await page.inner_text("body")).strip()
+        text, self._body_fallback_used = await self._query_content(
+            page, ".article__content.rte", ".article__content", ".rte"
+        )
+        return text

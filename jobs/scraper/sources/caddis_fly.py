@@ -28,7 +28,5 @@ class CaddisFlyScraper(BaseScraper):
         return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
 
     async def extract_content(self, page: Page) -> str:
-        el = await page.query_selector(".entry-content")
-        if el:
-            return (await el.inner_text()).strip()
-        return (await page.inner_text("body")).strip()
+        text, self._body_fallback_used = await self._query_content(page, ".entry-content")
+        return text
