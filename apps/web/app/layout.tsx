@@ -3,9 +3,9 @@ import { ApolloWrapper } from '@/lib/apollo/provider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'FishSignal — Central Oregon Fishing Intelligence',
+  title: 'FishSignal — Pacific Northwest Fishing Intelligence',
   description:
-    'Real-time fishing conditions, reports, and signals for Central Oregon rivers and lakes.',
+    'Real-time fishing conditions, reports, and signals for Pacific Northwest rivers and lakes.',
 }
 
 export default function RootLayout({
