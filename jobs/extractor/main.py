@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 CONTENT_SELECTORS = {
     # Oregon fly shops
     "caddis_fly": ".entry-content, article .entry-content",
-    "confluence_fly_shop": ".progression-blog-content, .entry-content, article",
+    "confluence_fly_shop": ".elementor-widget-text-editor, .elementor-widget-container, article",
     "fly_fishers_place": ".entry-content, .site-content .entry-content, article .entry-content",
     "fly_and_field": ".article__content.rte, .article__content, .rte",
     "deschutes_angler": ".rte, article .blog-post, article",

@@ -9,6 +9,7 @@ class ConfluenceScraper(BaseScraper):
     WordPress/Elementor site. Index has CTA blocks linking to per-location
     report pages (e.g. /fishing-report/lower-deschutes-river/).
     Reports are overwritten per location, not archived chronologically.
+    Content in Elementor text-editor widgets (.elementor-widget-text-editor).
     """
 
     def __init__(self):
@@ -26,6 +27,6 @@ class ConfluenceScraper(BaseScraper):
 
     async def extract_content(self, page: Page) -> str:
         text, self._body_fallback_used = await self._query_content(
-            page, ".progression-blog-content", ".entry-content", "article"
+            page, ".elementor-widget-text-editor", ".elementor-widget-container", "article", "main"
         )
         return text

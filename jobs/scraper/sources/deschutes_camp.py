@@ -6,7 +6,7 @@ from .base import BaseScraper
 class DeschutesCampScraper(BaseScraper):
     """Scraper for Deschutes River Camp fishing reports.
 
-    WordPress with Progression theme. Index has h2.entry-title links.
+    WordPress with Progression theme. Index has h2.progression-blog-title links.
     Content in .progression-blog-content.
     """
 
@@ -18,7 +18,7 @@ class DeschutesCampScraper(BaseScraper):
 
     async def discover_posts(self, page: Page) -> list[str]:
         links = await page.eval_on_selector_all(
-            "h2.entry-title a, .entry-title a",
+            ".progression-blog-title a, h2.entry-title a, .entry-title a",
             "els => els.map(el => el.href).filter(Boolean)",
         )
         return list(dict.fromkeys(links))
