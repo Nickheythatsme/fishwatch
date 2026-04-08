@@ -2,7 +2,6 @@ from playwright.async_api import Page
 
 from .base import BaseScraper
 
-
 # Travel/out-of-scope keywords in post URLs to skip
 _SKIP_KEYWORDS = ["christmas-island", "alaska", "jungle", "belize", "bahamas", "mexico", "patagonia", "chile"]
 
@@ -26,10 +25,7 @@ class CaddisFlyScraper(BaseScraper):
             'article a[rel="bookmark"], .entry-title a',
             "els => els.map(el => el.href)",
         )
-        return [
-            l for l in dict.fromkeys(links)
-            if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)
-        ]
+        return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
 
     async def extract_content(self, page: Page) -> str:
         el = await page.query_selector(".entry-content")

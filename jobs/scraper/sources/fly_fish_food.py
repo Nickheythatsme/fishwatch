@@ -24,10 +24,7 @@ class FlyFishFoodScraper(BaseScraper):
             "els => els.map(el => el.href).filter(h => h && h.includes('/blogs/fly-fishing-reports/'))",
         )
         # Dedupe and exclude the index page itself and tag pages
-        return list(dict.fromkeys(
-            l for l in links
-            if l.rstrip("/") != self.url.rstrip("/") and "/tagged/" not in l
-        ))
+        return list(dict.fromkeys(l for l in links if l.rstrip("/") != self.url.rstrip("/") and "/tagged/" not in l))
 
     async def extract_content(self, page: Page) -> str:
         el = await page.query_selector("article .rte, .article__content.rte, .rte")
