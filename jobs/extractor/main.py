@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from db import get_connection
+from scraper.sources.odfw import ODFW_ZONES
 
 from .parser import ExtractionParseError, parse_extraction
 from .prompt import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
@@ -41,16 +42,8 @@ CONTENT_SELECTORS = {
     # Idaho fly shops
     "fly_fish_food": "article .rte, .article__content.rte, .rte",
     "silver_creek_outfitters": ".post-content, .entry-content",
-    # ODFW zones (all share the same selectors)
-    "odfw_central_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_northwest_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_southwest_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_marine_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_columbia_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_snake_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_southeast_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_northeast_zone": "#main-content, .field--name-body, .node__content",
-    "odfw_willamette_zone": "#main-content, .field--name-body, .node__content",
+    # ODFW zones — generated from the canonical ODFW_ZONES dict in scraper
+    **{name: "#main-content, .field--name-body, .node__content" for name in ODFW_ZONES.values()},
 }
 
 # Shops that primarily cover a specific water body when ambiguous

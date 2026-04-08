@@ -1,15 +1,16 @@
-INSERT INTO water_bodies (name, slug, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
-('Lower Deschutes River', 'lower-deschutes', 44.9572, -121.2695, ARRAY['14092500'], ARRAY['rainbow trout', 'steelhead', 'brown trout'], 'Trophy water below Pelton Dam. Year-round fishery with strong redsides.'),
-('Upper Deschutes River', 'upper-deschutes', 43.9945, -121.3856, ARRAY['14050000'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Urban stretch through Bend. Accessible wade fishing.'),
-('Middle Deschutes River', 'middle-deschutes', 44.3500, -121.2400, ARRAY['14076500'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Between Bend and Lake Billy Chinook. Less pressured canyon water.'),
-('Crooked River', 'crooked-river', 44.3072, -121.1300, ARRAY['14087400'], ARRAY['rainbow trout', 'whitefish', 'mountain whitefish'], 'Tailwater below Bowman Dam. Consistent year-round nymphing.'),
-('Fall River', 'fall-river', 43.7800, -121.6300, ARRAY['14057500'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Spring creek. Sight fishing to rising trout. Catch and release.'),
-('Metolius River', 'metolius', 44.5800, -121.5100, ARRAY['14091500'], ARRAY['rainbow trout', 'bull trout', 'brook trout', 'whitefish'], 'Crystal-clear spring-fed river. Challenging technical fishing.'),
-('Crane Prairie Reservoir', 'crane-prairie', 43.7930, -121.7830, '{}', ARRAY['rainbow trout', 'brook trout', 'largemouth bass'], 'Stillwater. Famous for large "cranebows." Best from boat or float tube.'),
-('Hosmer Lake', 'hosmer-lake', 43.8260, -121.7950, '{}', ARRAY['atlantic salmon', 'brook trout'], 'Fly fishing only, catch and release. Unique Atlantic salmon fishery.'),
-('East Lake', 'east-lake', 43.7180, -121.2080, '{}', ARRAY['rainbow trout', 'brown trout', 'atlantic salmon', 'kokanee'], 'Volcanic lake in Newberry Caldera. Hot springs influence.'),
-('Davis Lake', 'davis-lake', 43.5900, -121.8000, '{}', ARRAY['rainbow trout', 'largemouth bass'], 'Shallow fly fishing lake. Good damselfly and callibaetis hatches.'),
-('Tumalo Creek', 'tumalo-creek', 44.0200, -121.5600, '{}', ARRAY['rainbow trout', 'brook trout'], 'Small mountain stream west of Bend. Fun pocket water fishing.');
+-- Central Oregon rivers and lakes
+INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
+('Lower Deschutes River', 'lower-deschutes', 'oregon', 44.9572, -121.2695, ARRAY['14092500'], ARRAY['rainbow trout', 'steelhead', 'brown trout'], 'Trophy water below Pelton Dam. Year-round fishery with strong redsides.'),
+('Upper Deschutes River', 'upper-deschutes', 'oregon', 43.9945, -121.3856, ARRAY['14050000'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Urban stretch through Bend. Accessible wade fishing.'),
+('Middle Deschutes River', 'middle-deschutes', 'oregon', 44.3500, -121.2400, ARRAY['14076500'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Between Bend and Lake Billy Chinook. Less pressured canyon water.'),
+('Crooked River', 'crooked-river', 'oregon', 44.3072, -121.1300, ARRAY['14087400'], ARRAY['rainbow trout', 'whitefish', 'mountain whitefish'], 'Tailwater below Bowman Dam. Consistent year-round nymphing.'),
+('Fall River', 'fall-river', 'oregon', 43.7800, -121.6300, ARRAY['14057500'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Spring creek. Sight fishing to rising trout. Catch and release.'),
+('Metolius River', 'metolius', 'oregon', 44.5800, -121.5100, ARRAY['14091500'], ARRAY['rainbow trout', 'bull trout', 'brook trout', 'whitefish'], 'Crystal-clear spring-fed river. Challenging technical fishing.'),
+('Crane Prairie Reservoir', 'crane-prairie', 'oregon', 43.7930, -121.7830, '{}', ARRAY['rainbow trout', 'brook trout', 'largemouth bass'], 'Stillwater. Famous for large "cranebows." Best from boat or float tube.'),
+('Hosmer Lake', 'hosmer-lake', 'oregon', 43.8260, -121.7950, '{}', ARRAY['atlantic salmon', 'brook trout'], 'Fly fishing only, catch and release. Unique Atlantic salmon fishery.'),
+('East Lake', 'east-lake', 'oregon', 43.7180, -121.2080, '{}', ARRAY['rainbow trout', 'brown trout', 'atlantic salmon', 'kokanee'], 'Volcanic lake in Newberry Caldera. Hot springs influence.'),
+('Davis Lake', 'davis-lake', 'oregon', 43.5900, -121.8000, '{}', ARRAY['rainbow trout', 'largemouth bass'], 'Shallow fly fishing lake. Good damselfly and callibaetis hatches.'),
+('Tumalo Creek', 'tumalo-creek', 'oregon', 44.0200, -121.5600, '{}', ARRAY['rainbow trout', 'brook trout'], 'Small mountain stream west of Bend. Fun pocket water fishing.');
 
 -- Oregon rivers (beyond Central Oregon)
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
@@ -20,14 +21,14 @@ INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_
 ('North Umpqua River', 'north-umpqua-river', 'oregon', 43.3307, -123.0031, ARRAY['14319500'], ARRAY['summer steelhead', 'winter steelhead', 'rainbow trout', 'chinook salmon'], 'Legendary 31-mile fly-only section. Premier summer steelhead river with spring-fed flows and extreme clarity.'),
 ('Klamath River', 'klamath-river', 'oregon', 42.1330, -121.9620, ARRAY['11509500'], ARRAY['redband trout', 'rainbow trout', 'brown trout'], 'High-desert tailwater below Keno Dam with excellent redband trout fishing.'),
 ('Sandy River', 'sandy-river', 'oregon', 45.4490, -122.2450, ARRAY['14142500'], ARRAY['winter steelhead', 'summer steelhead', 'coho salmon', 'chinook salmon', 'rainbow trout'], 'Free-flowing glacial river near Portland with strong steelhead runs. Wade fishing from Dodge Park to Oxbow Park.'),
-('Clackamas River', 'clackamas-river', 'oregon', 45.3000, -122.3540, ARRAY['14210000'], ARRAY['winter steelhead', 'summer steelhead', 'spring chinook salmon', 'coho salmon', 'rainbow trout', 'cutthroat trout'], 'Broad river near Portland favored by spey casters. Ledgy slots and boulder runs.');
+('Clackamas River', 'clackamas-river', 'oregon', 45.3000, -122.3540, ARRAY['14210000'], ARRAY['winter steelhead', 'summer steelhead', 'spring chinook salmon', 'coho salmon', 'rainbow trout', 'cutthroat trout'], 'Broad river near Portland favored by spey casters. Ledgy slots and boulder runs.'),
+('Grande Ronde River', 'grande-ronde', 'oregon', 45.9457, -117.4510, ARRAY['13333000'], ARRAY['steelhead', 'rainbow trout', 'smallmouth bass', 'whitefish'], 'OR/WA border canyon. Prime steelhead water around 900-1400 CFS.');
 
 -- Washington / Idaho rivers (Silver Bow coverage)
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
 ('Spokane River', 'spokane-river', 'washington', 47.6593, -117.4491, ARRAY['12422500'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Large freestone through Spokane. Best wade fishing below 3000 CFS.'),
 ('North Fork Coeur d''Alene River', 'nf-coeur-d-alene', 'idaho', 47.7061, -115.9792, ARRAY['12411000'], ARRAY['westslope cutthroat trout', 'rainbow trout', 'bull trout'], 'Pristine panhandle freestone. Dry fly paradise for westslope cutthroat.'),
-('St. Joe River', 'st-joe-river', 'idaho', 47.2744, -116.1889, ARRAY['12414500'], ARRAY['westslope cutthroat trout'], 'Remote mountain river. Walk-and-wade ideal near 90 CFS. Aggressive dry fly cutthroat.'),
-('Grande Ronde River', 'grande-ronde', 'oregon', 45.9457, -117.4510, ARRAY['13333000'], ARRAY['steelhead', 'rainbow trout', 'smallmouth bass', 'whitefish'], 'OR/WA border canyon. Prime steelhead water around 900-1400 CFS.');
+('St. Joe River', 'st-joe-river', 'idaho', 47.2744, -116.1889, ARRAY['12414500'], ARRAY['westslope cutthroat trout'], 'Remote mountain river. Walk-and-wade ideal near 90 CFS. Aggressive dry fly cutthroat.');
 
 -- Idaho rivers (Fly Fish Food / Silver Creek Outfitters coverage)
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES

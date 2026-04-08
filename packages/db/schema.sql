@@ -9,7 +9,7 @@ CREATE TABLE water_bodies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE,             -- URL-friendly: "lower-deschutes"
-    region TEXT NOT NULL DEFAULT 'central-oregon',
+    region TEXT NOT NULL DEFAULT 'oregon',
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
     description TEXT,
