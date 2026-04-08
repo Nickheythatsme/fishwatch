@@ -1,4 +1,10 @@
 SHOP_SOURCES = [
+    # Oregon fly shops
+    {
+        "name": "caddis_fly",
+        "url": "https://oregonflyfishingblog.com/category/fishing-reports/",
+        "scraper": "caddis_fly",
+    },
     {
         "name": "confluence_fly_shop",
         "url": "https://confluenceflyshop.com/fishing-reports/",
@@ -24,10 +30,22 @@ SHOP_SOURCES = [
         "url": "https://deschutescamp.com/fishing-report/",
         "scraper": "deschutes_camp",
     },
+    # Washington fly shops
     {
-        "name": "odfw_central_zone",
-        "url": "https://myodfw.com/recreation-report/fishing-report/central-zone",
-        "scraper": "odfw",
+        "name": "silver_bow",
+        "url": "https://www.silverbowflyshop.com/fishingreports/",
+        "scraper": "silver_bow",
+    },
+    # Idaho fly shops
+    {
+        "name": "fly_fish_food",
+        "url": "https://www.flyfishfood.com/blogs/fly-fishing-reports",
+        "scraper": "fly_fish_food",
+    },
+    {
+        "name": "silver_creek_outfitters",
+        "url": "https://silver-creek.com/category/fishing-forecast/fishing-report/",
+        "scraper": "silver_creek_outfitters",
     },
 ]
 
