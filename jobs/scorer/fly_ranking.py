@@ -11,7 +11,7 @@ _SIZE_SUFFIX_RE = re.compile(r"\s*#\s*\d+[-–]?\d*\s*$")
 
 def build_alias_map(cur) -> dict[str, str]:
     """Build a lowercased alias -> canonical name lookup from the fly_patterns table."""
-    cur.execute("SELECT name, aliases FROM fly_patterns")
+    cur.execute("SELECT name, aliases FROM fly_patterns ORDER BY name")
     alias_map: dict[str, str] = {}
     for row in cur.fetchall():
         canonical = row[0]
@@ -26,14 +26,24 @@ def _normalize_fly(fly: str, alias_map: dict[str, str]) -> str:
     """Normalize a free-form fly string to a canonical name if possible."""
     stripped = _SIZE_SUFFIX_RE.sub("", fly).strip().lower()
 
+    if not stripped:
+        return fly
+
     # Exact match after stripping size
     if stripped in alias_map:
         return alias_map[stripped]
 
-    # Check if any alias is a substring of the fly string, or vice versa
+    # Substring matching: prefer the longest alias match for determinism
+    best_match: str | None = None
+    best_len = 0
     for alias, canonical in alias_map.items():
         if alias in stripped or stripped in alias:
-            return canonical
+            if len(alias) > best_len:
+                best_match = canonical
+                best_len = len(alias)
+
+    if best_match is not None:
+        return best_match
 
     # No match — return original string as-is
     return fly
@@ -70,6 +80,8 @@ def rank_flies(
 
         seen_in_report: set[str] = set()
         for fl in r.get("fly_patterns_mentioned", []):
+            if not fl or not isinstance(fl, str):
+                continue
             canonical = _normalize_fly(fl, alias_map)
             if canonical not in seen_in_report:
                 seen_in_report.add(canonical)

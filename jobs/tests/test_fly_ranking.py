@@ -53,6 +53,26 @@ class TestNormalizeFly:
     def test_substring_match(self):
         assert _normalize_fly("pheasant tail nymph", ALIAS_MAP) == "Pheasant Tail"
 
+    def test_empty_after_strip_returns_original(self):
+        """Size-only input like '#18' should not falsely match an alias."""
+        result = _normalize_fly("#18", ALIAS_MAP)
+        assert result == "#18"
+
+    def test_blank_string_returns_original(self):
+        result = _normalize_fly("  ", ALIAS_MAP)
+        assert result == "  "
+
+    def test_longest_alias_wins(self):
+        """When multiple aliases match, the longest one wins for determinism."""
+        # "pheasant tail nymph" is longer than "pheasant tail" and both are aliases
+        alias_map = {
+            "pheasant tail": "Pheasant Tail",
+            "pheasant tail nymph": "Pheasant Tail",
+            "pt": "Pheasant Tail",
+            "stone": "Stonefly Nymph",
+        }
+        assert _normalize_fly("pheasant tail nymph #14", alias_map) == "Pheasant Tail"
+
 
 class TestRankFlies:
     def test_empty_reports(self):
@@ -136,3 +156,15 @@ class TestRankFlies:
         ]
         result = rank_flies(reports, ALIAS_MAP, today=TODAY)
         assert result.count("Blue Wing Olive") == 1
+
+    def test_null_fly_entries_skipped(self):
+        """None and non-string entries in fly_patterns_mentioned are skipped."""
+        reports = [
+            {
+                "fly_patterns_mentioned": [None, "", "BWO #18", 42, None],
+                "source_name": "shop_a",
+                "report_date": TODAY,
+            },
+        ]
+        result = rank_flies(reports, ALIAS_MAP, today=TODAY)
+        assert result == ["Blue Wing Olive"]
