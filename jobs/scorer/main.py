@@ -13,6 +13,7 @@ from db import get_connection
 from .composite import compute_composite
 from .consensus import score_consensus
 from .flow_score import score_flow
+from .fly_ranking import build_alias_map, rank_flies
 from .sentiment_score import score_sentiment
 
 logging.basicConfig(
@@ -30,6 +31,9 @@ def run() -> int:
     try:
         today = date.today().isoformat()
         week_ago = (date.today() - timedelta(days=7)).isoformat()
+
+        # Build fly alias map once for all water bodies
+        alias_map = build_alias_map(cur)
 
         # Get all water bodies
         cur.execute("SELECT id, slug, name FROM water_bodies")
@@ -56,7 +60,8 @@ def run() -> int:
                 # Get recent reports (last 7 days)
                 cur.execute(
                     """
-                    SELECT sentiment, source_name, species_mentioned, fly_patterns_mentioned
+                    SELECT sentiment, source_name, species_mentioned,
+                           fly_patterns_mentioned, report_date
                     FROM parsed_reports
                     WHERE water_body_id = %s AND report_date >= %s
                     """,
@@ -68,6 +73,7 @@ def run() -> int:
                         "source_name": row[1],
                         "species_mentioned": row[2] or [],
                         "fly_patterns_mentioned": row[3] or [],
+                        "report_date": row[4],
                     }
                     for row in cur.fetchall()
                 ]
@@ -80,14 +86,14 @@ def run() -> int:
                 # Compute composite
                 composite = compute_composite(f_score, s_score, c_score)
 
-                # Aggregate recommended species and flies from reports
+                # Aggregate recommended species from reports
                 species: set[str] = set()
-                flies: set[str] = set()
                 for r in recent_reports:
                     for sp in r.get("species_mentioned", []):
                         species.add(sp)
-                    for fl in r.get("fly_patterns_mentioned", []):
-                        flies.add(fl)
+
+                # Rank and cap fly recommendations
+                ranked_flies = rank_flies(recent_reports, alias_map)
 
                 # Build summary
                 summary_parts = []
@@ -127,7 +133,7 @@ def run() -> int:
                         s_score,
                         c_score,
                         list(species),
-                        list(flies),
+                        ranked_flies,
                         summary,
                         json.dumps({"flow_cfs": current_flow, "report_count": len(recent_reports)}),
                         datetime.now(UTC).isoformat(),
