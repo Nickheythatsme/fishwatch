@@ -73,6 +73,24 @@ class TestNormalizeFly:
         }
         assert _normalize_fly("pheasant tail nymph #14", alias_map) == "Pheasant Tail"
 
+    def test_short_input_does_not_match_longer_alias(self):
+        """Short input 'stone' must NOT match canonical 'golden stone' (input-in-alias false positive)."""
+        alias_map = {
+            "golden stone": "Golden Stonefly",
+            "stone": "Stonefly Nymph",
+        }
+        # "stone" exactly matches the "stone" alias, not "golden stone"
+        assert _normalize_fly("stone #8", alias_map) == "Stonefly Nymph"
+
+    def test_input_not_contained_in_alias(self):
+        """Input 'stone' should not match alias 'golden stone' via input-in-alias direction."""
+        alias_map = {
+            "golden stone": "Golden Stonefly",
+        }
+        # "stone" is contained in "golden stone" but "golden stone" is NOT in "stone"
+        # so no match; original is returned
+        assert _normalize_fly("stone #8", alias_map) == "stone #8"
+
 
 class TestRankFlies:
     def test_empty_reports(self):

@@ -33,14 +33,16 @@ def _normalize_fly(fly: str, alias_map: dict[str, str]) -> str:
     if stripped in alias_map:
         return alias_map[stripped]
 
-    # Substring matching: prefer the longest alias match for determinism
+    # Substring matching: find aliases contained within the input.
+    # Only match alias-in-input (not input-in-alias) to avoid short inputs
+    # like "stone" falsely matching longer aliases like "golden stone".
+    # Prefer the longest matching alias for determinism.
     best_match: str | None = None
     best_len = 0
     for alias, canonical in alias_map.items():
-        if alias in stripped or stripped in alias:
-            if len(alias) > best_len:
-                best_match = canonical
-                best_len = len(alias)
+        if alias in stripped and len(alias) > best_len:
+            best_match = canonical
+            best_len = len(alias)
 
     if best_match is not None:
         return best_match
