@@ -22,9 +22,14 @@ class CaddisFlyScraper(BaseScraper):
 
     async def discover_posts(self, page: Page) -> list[str]:
         links = await page.eval_on_selector_all(
-            'article a[rel="bookmark"], .entry-title a',
+            'article a[rel="bookmark"], .entry-title a, h2.entry-title a, .wp-block-post-title a',
             "els => els.map(el => el.href)",
         )
+        # Fallback: discover posts by URL pattern (date-based WordPress permalinks)
+        # This is resilient to theme changes that alter class names / rel attributes.
+        if not links:
+            _js = r"els => els.map(el => el.href).filter(h => /\/\d{4}\/\d{2}\/\d{2}\//.test(h))"
+            links = await page.eval_on_selector_all("a[href]", _js)
         return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
 
     async def extract_content(self, page: Page) -> str:
