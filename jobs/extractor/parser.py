@@ -30,14 +30,20 @@ def _strip_code_fences(text: str) -> str:
 def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> list[dict]:
     """Parse Claude's JSON response into parsed_report rows."""
     raw_json = _strip_code_fences(raw_json)
-    try:
-        entries = json.loads(raw_json)
-    except json.JSONDecodeError as e:
+    stripped = raw_json.lstrip()
+    if not stripped.startswith(("[", "{")):
         # Claude sometimes returns prose instead of [] when no water bodies match.
         # Treat non-JSON responses as empty extraction rather than hard failures.
-        if not raw_json.lstrip().startswith(("[", "{")):
-            logger.info(f"Non-JSON response (likely no matching water bodies): {raw_json[:200]}")
-            return []
+        logger.info(f"Non-JSON response (likely no matching water bodies): {raw_json[:200]}")
+        return []
+    try:
+        # raw_decode tolerates trailing content (e.g., explanatory prose appended
+        # after the JSON, or a second JSON value) which json.loads rejects with
+        # "Extra data". The leading offset accounts for any whitespace stripped
+        # above when locating the start of the first JSON value.
+        offset = len(raw_json) - len(stripped)
+        entries, _ = json.JSONDecoder().raw_decode(raw_json, offset)
+    except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON from Claude: {e}")
         logger.debug(f"Raw JSON: {raw_json[:500]}")
         raise ExtractionParseError(str(e)) from e
