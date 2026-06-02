@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from db import get_connection
 
-from .composite import compute_composite
+from .composite import compute_composite, is_flow_suspect
 from .consensus import score_consensus
 from .flow_score import score_flow
 from .fly_ranking import build_alias_map, rank_flies
@@ -82,6 +82,14 @@ def run() -> int:
                 f_score = score_flow(slug, current_flow)
                 s_score = score_sentiment(recent_reports)
                 c_score = score_consensus(recent_reports)
+
+                # Disagreement guard: distrust gauge data that contradicts strong reports
+                if is_flow_suspect(f_score, s_score):
+                    logger.warning(
+                        f"{wb['name']}: flow score {f_score} contradicts strong reports "
+                        f"(sentiment={s_score}); excluding flow from signal"
+                    )
+                    f_score = None
 
                 # Compute composite
                 composite = compute_composite(f_score, s_score, c_score)

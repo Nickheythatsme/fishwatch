@@ -60,10 +60,13 @@ USGS_PARAMS = {
 # Relevant USGS stations mapped to water body slugs
 USGS_STATIONS = {
     # Central Oregon
+    # NOTE: crooked-river is NOT fetched from USGS. The only active USGS gauge
+    # (14087400, below Opal Springs) sits ~30 miles downstream of Bowman Dam where
+    # spring inflows add 1,000+ cfs, so it doesn't reflect tailwater conditions.
+    # The Bowman Dam tailwater gauge (14080500) is fetched from OWRD instead.
     "14092500": "lower-deschutes",
     "14050000": "upper-deschutes",
     "14076500": "middle-deschutes",
-    "14087400": "crooked-river",
     "14057500": "fall-river",
     "14091500": "metolius",
     # Oregon (beyond Central)
@@ -85,6 +88,16 @@ USGS_STATIONS = {
     "13135500": "big-wood-river",
     "13127000": "big-lost-river",
     "13186000": "sf-boise-river",
+}
+
+# Oregon WRD near-real-time API — covers gauges that USGS Water Services
+# doesn't publish instantaneous data for
+OWRD_BASE_URL = "https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hydro_download.aspx"
+
+# OWRD stations mapped to water body slugs
+OWRD_STATIONS = {
+    # Crooked River near Prineville — the Bowman Dam tailwater section
+    "14080500": "crooked-river",
 }
 
 # Ideal flow ranges (cfs) for good fishing — used by scorer

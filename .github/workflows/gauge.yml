@@ -1,4 +1,4 @@
-name: Fetch USGS gauge data
+name: Fetch gauge data
 
 on:
   schedule:
@@ -23,7 +23,13 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Fetch gauge readings
+      - name: Fetch USGS gauge readings
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m scraper.sources.usgs
+
+      - name: Fetch OWRD gauge readings
+        if: ${{ !cancelled() }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scraper.sources.owrd
