@@ -31,6 +31,9 @@ next-env.d.ts
 # scraper artifacts
 jobs/artifacts/
 
+# playwright MCP scratch (console logs, page snapshots)
+.playwright-mcp/
+
 # python
 __pycache__/
 *.py[cod]
