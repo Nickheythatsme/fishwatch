@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 from playwright.async_api import Browser, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from ..models import ScraperHealthError, ScraperResult, ScraperStatus
 
@@ -19,11 +20,28 @@ class BaseScraper(ABC):
     """Base class for all fishing report scrapers using Playwright."""
 
     single_page: bool = False
+    goto_timeout_ms: int = 30_000
+    goto_wait_until: str = "domcontentloaded"
+    # Optional selector that must appear on the index page before discover_posts runs.
+    # Guards against stub/cached responses or DOM that's not yet populated when
+    # domcontentloaded fires.
+    index_ready_selector: str | None = None
 
     def __init__(self, name: str, url: str):
         self.name = name
         self.url = url
         self._body_fallback_used = False
+
+    async def _goto_index(self, page: Page) -> None:
+        """Navigate to the index URL with one retry on timeout, then wait for the index
+        to be ready if a selector is configured."""
+        try:
+            await page.goto(self.url, wait_until=self.goto_wait_until, timeout=self.goto_timeout_ms)
+        except PlaywrightTimeoutError:
+            logger.warning(f"[{self.name}] index goto timed out after {self.goto_timeout_ms}ms, retrying")
+            await page.goto(self.url, wait_until=self.goto_wait_until, timeout=self.goto_timeout_ms * 2)
+        if self.index_ready_selector:
+            await page.wait_for_selector(self.index_ready_selector, timeout=self.goto_timeout_ms)
 
     async def _query_content(self, page: Page, *selectors: str) -> tuple[str, bool]:
         """Try selectors in order. Returns (text, used_body_fallback)."""
@@ -84,11 +102,11 @@ class BaseScraper(ABC):
         body_fallback_used = False
         artifact_paths: list[str] = []
         context = await browser.new_context(user_agent="FishSignal/1.0 (fishing report aggregator)")
-        context.set_default_timeout(30_000)
+        context.set_default_timeout(self.goto_timeout_ms)
 
         try:
             page = await context.new_page()
-            await page.goto(self.url, wait_until="domcontentloaded")
+            await self._goto_index(page)
             post_urls = await self.discover_posts(page)
             logger.info(f"[{self.name}] Discovered {len(post_urls)} posts")
 
@@ -101,7 +119,7 @@ class BaseScraper(ABC):
 
                     # Skip re-navigation if already on this page (e.g. ODFW single-page)
                     if absolute_url != page.url:
-                        await page.goto(absolute_url, wait_until="domcontentloaded")
+                        await page.goto(absolute_url, wait_until=self.goto_wait_until)
 
                     self._body_fallback_used = False
                     content = await self.extract_content(page)

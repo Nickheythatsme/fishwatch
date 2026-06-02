@@ -14,6 +14,10 @@ class CaddisFlyScraper(BaseScraper):
     Content in .entry-content.
     """
 
+    # Site uses div.hentry > h2.entry-title (no <article> tags). Waiting for the
+    # entry-title link guards against the runner reading the page before posts render.
+    index_ready_selector = "h2.entry-title a"
+
     def __init__(self):
         super().__init__(
             name="caddis_fly",
@@ -22,7 +26,7 @@ class CaddisFlyScraper(BaseScraper):
 
     async def discover_posts(self, page: Page) -> list[str]:
         links = await page.eval_on_selector_all(
-            'article a[rel="bookmark"], .entry-title a',
+            'h2.entry-title a, .entry-title a[rel="bookmark"]',
             "els => els.map(el => el.href)",
         )
         return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
