@@ -170,10 +170,10 @@ function DashboardContent() {
   // <main> in layout. Height calc fills the remaining viewport precisely.
   return (
     <div className="flex h-[calc(100dvh-64px)] w-full md:h-[calc(100vh-65px)]">
-      <aside id="intelligence" className="hidden w-96 shrink-0 md:flex">
+      <aside id="intelligence" className="hidden w-96 shrink-0 overflow-hidden md:block">
         {panel}
       </aside>
-      <div id="map" className="relative flex-1">
+      <div id="map" className="relative flex-1 overflow-hidden">
         {loading && !data ? (
           <div className="h-full w-full animate-pulse bg-surface-container-high" />
         ) : (

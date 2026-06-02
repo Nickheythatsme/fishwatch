@@ -35,7 +35,7 @@ export function IntelligencePanel({
   onHover,
 }: IntelligencePanelProps) {
   return (
-    <div className="flex h-full flex-col bg-surface-container-low">
+    <div className="flex h-full w-full flex-col bg-surface-container-low">
       <div className="p-6 pb-3">
         <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-secondary">
           Current Intelligence
