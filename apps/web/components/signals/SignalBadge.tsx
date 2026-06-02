@@ -9,10 +9,10 @@ export function SignalBadge({ score, noData }: SignalBadgeProps) {
   if (noData) {
     return (
       <div className="flex flex-col items-center gap-0.5">
-        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-300 text-sm font-bold text-white">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-high text-sm font-bold text-on-surface-variant">
           --
         </span>
-        <span className="text-xs font-semibold text-gray-400">No Data</span>
+        <span className="text-xs font-semibold text-on-surface-variant">No Data</span>
       </div>
     )
   }

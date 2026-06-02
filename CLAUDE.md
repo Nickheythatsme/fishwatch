@@ -95,6 +95,8 @@ Fix any errors before committing. For Python format issues, run `ruff format .` 
 
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — Supabase publishable key
+- `NEXT_PUBLIC_MAPBOX_API_KEY` — Mapbox publishable token (`pk.*`). Used client-side for map tiles; restrict by URL in the Mapbox dashboard
+- `NEXT_PUBLIC_MAPBOX_STYLE_ID` *(optional)* — Mapbox style id (defaults to `outdoors-v12`)
 
 ### Python jobs (`.env` at repo root)
 
