@@ -1,6 +1,28 @@
 import type { Metadata } from 'next'
+import { Manrope, Newsreader } from 'next/font/google'
 import { ApolloWrapper } from '@/lib/apollo/provider'
+import { TopBar } from '@/components/shell/TopBar'
+import { MobileNav } from '@/components/shell/MobileNav'
 import './globals.css'
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-headline',
+  display: 'swap',
+  // Newsreader lacks font-override metrics in Next's database; skipping the
+  // fallback adjuster avoids a build warning. CLS impact is negligible since
+  // we still get `display: swap`.
+  adjustFontFallback: false,
+})
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-body',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'FishSignal — Pacific Northwest Fishing Intelligence',
@@ -14,25 +36,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+    <html lang="en" className={`${newsreader.variable} ${manrope.variable}`}>
+      <body className="min-h-screen bg-surface font-body text-on-surface antialiased">
         <ApolloWrapper>
-          <header className="border-b bg-white">
-            <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-              <a href="/" className="text-xl font-bold text-blue-700">
-                FishSignal
-              </a>
-              <div className="flex gap-6 text-sm font-medium">
-                <a href="/" className="hover:text-blue-600">
-                  Dashboard
-                </a>
-                <a href="/reports" className="hover:text-blue-600">
-                  Reports
-                </a>
-              </div>
-            </nav>
-          </header>
-          <main>{children}</main>
+          <TopBar />
+          <main className="pb-16 md:pb-0">{children}</main>
+          <MobileNav />
         </ApolloWrapper>
       </body>
     </html>

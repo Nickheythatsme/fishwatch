@@ -1,22 +1,59 @@
-export function scoreToColor(score: number): string {
-  if (score >= 8) return 'bg-signal-great'
-  if (score >= 6) return 'bg-signal-good'
-  if (score >= 4) return 'bg-signal-fair'
-  return 'bg-signal-poor'
+export type ScoreTone = 'secondary' | 'tertiary' | 'error' | 'neutral'
+
+// "Tactile Cartographer" buckets: 1-4 error, 5-7 tertiary (earth), 8-10 secondary (forest).
+export function scoreToTone(
+  score: number | null | undefined,
+  noData = false
+): ScoreTone {
+  if (noData || score == null) return 'neutral'
+  if (score >= 8) return 'secondary'
+  if (score >= 5) return 'tertiary'
+  return 'error'
 }
 
-export function scoreToTextColor(score: number): string {
-  if (score >= 8) return 'text-signal-great'
-  if (score >= 6) return 'text-signal-good'
-  if (score >= 4) return 'text-signal-fair'
-  return 'text-signal-poor'
+// Saturated background for chips/bars with on-* text.
+const TONE_BG: Record<ScoreTone, string> = {
+  secondary: 'bg-secondary',
+  tertiary: 'bg-tertiary',
+  error: 'bg-error',
+  neutral: 'bg-surface-container-high',
 }
 
+// Soft container background for tonal cards.
+const TONE_CONTAINER_BG: Record<ScoreTone, string> = {
+  secondary: 'bg-secondary-container',
+  tertiary: 'bg-tertiary-fixed',
+  error: 'bg-error-container',
+  neutral: 'bg-surface-container-high',
+}
+
+const TONE_TEXT: Record<ScoreTone, string> = {
+  secondary: 'text-secondary',
+  tertiary: 'text-tertiary',
+  error: 'text-error',
+  neutral: 'text-on-surface-variant',
+}
+
+export function scoreToColor(score: number | null | undefined, noData = false): string {
+  return TONE_BG[scoreToTone(score, noData)]
+}
+
+export function scoreToContainerColor(score: number | null | undefined, noData = false): string {
+  return TONE_CONTAINER_BG[scoreToTone(score, noData)]
+}
+
+export function scoreToTextColor(score: number | null | undefined, noData = false): string {
+  return TONE_TEXT[scoreToTone(score, noData)]
+}
+
+// Five-band label scale — independent of the three-tone color buckets so that
+// "Excellent" and "Great" can both render as `secondary` while still reading
+// differently in copy.
 export function scoreToLabel(score: number): string {
+  if (score >= 9) return 'Excellent'
   if (score >= 8) return 'Great'
-  if (score >= 6) return 'Good'
-  if (score >= 4) return 'Fair'
-  if (score >= 2) return 'Poor'
+  if (score >= 5) return 'Fair'
+  if (score >= 3) return 'Poor'
   return 'Avoid'
 }
 
