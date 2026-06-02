@@ -61,6 +61,8 @@ export const regionConditionsResolvers = {
           .in('water_body_id', ids)
           .gte('report_date', since7dDate),
       ])
+      if (gauges.error) throw gauges.error
+      if (reports.error) throw reports.error
 
       // Flow trend — split into prior 24h vs last 24h, then compare averages.
       let priorSum = 0,

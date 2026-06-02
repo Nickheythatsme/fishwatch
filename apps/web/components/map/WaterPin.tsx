@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
-import { scoreToTone, type ScoreTone } from '@/components/signals/score-utils'
+import { scoreToTone, TONE_HEX } from '@/components/signals/score-utils'
 
 interface WaterBodyPin {
   id: string
@@ -14,13 +14,6 @@ interface WaterBodyPin {
   currentSignal?: {
     compositeScore: number
   } | null
-}
-
-const TONE_HEX: Record<ScoreTone, string> = {
-  secondary: '#50653e',
-  tertiary: '#5b3918',
-  error: '#ba1a1a',
-  neutral: '#737780',
 }
 
 const DOT = 14

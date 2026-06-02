@@ -13,12 +13,13 @@ async function fetchTopSection(
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10)
-    const { data } = await ctx.supabase
+    const { data, error } = await ctx.supabase
       .from('parsed_reports')
       .select('river_section')
       .eq('water_body_id', waterBodyId)
       .gte('report_date', since)
       .not('river_section', 'is', null)
+    if (error) throw error
 
     if (!data || data.length === 0) return null
     const counts = new Map<string, number>()

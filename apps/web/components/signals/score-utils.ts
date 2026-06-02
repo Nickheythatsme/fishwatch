@@ -1,5 +1,17 @@
 export type ScoreTone = 'secondary' | 'tertiary' | 'error' | 'neutral'
 
+// Hex values for ScoreTone, mirroring the corresponding Tailwind tokens in
+// tailwind.config.ts. Single source of truth for code paths that can't apply
+// Tailwind classes — e.g. SVG stroke attributes (ScoreRing) and Leaflet
+// divIcon HTML (WaterPin). If a Material 3 token hex changes, update both
+// places together.
+export const TONE_HEX: Record<ScoreTone, string> = {
+  secondary: '#50653e',
+  tertiary: '#5b3918',
+  error: '#ba1a1a',
+  neutral: '#737780',
+}
+
 // "Tactile Cartographer" buckets: 1-4 error, 5-7 tertiary (earth), 8-10 secondary (forest).
 export function scoreToTone(
   score: number | null | undefined,

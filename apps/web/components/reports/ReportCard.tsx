@@ -53,7 +53,7 @@ export function ReportCard({ report }: { report: Report }) {
             <span className="font-label text-xs text-outline">{report.reportDate}</span>
           )}
           {report.sentiment && (
-            <Tag variant={SENTIMENT_VARIANT[report.sentiment] ?? 'neutral'}>
+            <Tag variant={SENTIMENT_VARIANT[report.sentiment.toLowerCase()] ?? 'neutral'}>
               {report.sentiment}
             </Tag>
           )}

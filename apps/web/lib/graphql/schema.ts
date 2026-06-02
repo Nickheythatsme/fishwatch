@@ -62,13 +62,13 @@ export const typeDefs = /* GraphQL */ `
   }
 
   type RegionConditions {
-    """"Rising" / "Falling" / "Stable" — derived from 48h flow gauge deltas across the region."""
+    """Trend bucket for regional flow over the last 48h. One of: Rising, Falling, Stable."""
     flowTrend: String
-    """"Light" / "Moderate" / "Heavy" — derived from distinct hatch mentions in the past 7d."""
+    """Volume bucket for hatch mentions in regional reports over the last 7d. One of: Light, Moderate, Heavy."""
     hatchVolume: String
     """Latest non-null water temperature reading across region gauges, last 24h."""
     waterTempF: Float
-    """Human-readable location label (e.g. "Central Oregon")."""
+    """Human-readable location label (e.g. Central Oregon)."""
     locationLabel: String
   }
 

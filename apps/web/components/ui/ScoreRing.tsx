@@ -1,4 +1,5 @@
-import { scoreToLabel, scoreToTone, type ScoreTone } from '@/components/signals/score-utils'
+import { scoreToLabel, scoreToTone, TONE_HEX } from '@/components/signals/score-utils'
+import type { ScoreTone } from '@/components/signals/score-utils'
 
 type Size = 'sm' | 'md' | 'lg'
 
@@ -21,15 +22,6 @@ const DIMS: Record<Size, Dims> = {
   sm: { px: 48, stroke: 4, numberClass: 'text-base', labelClass: 'text-[9px]' },
   md: { px: 64, stroke: 5, numberClass: 'text-xl', labelClass: 'text-[10px]' },
   lg: { px: 96, stroke: 6, numberClass: 'text-4xl', labelClass: 'text-xs' },
-}
-
-// hex values mirror the Tailwind tokens so SVG stroke attrs work without
-// reaching into the design system at runtime.
-const TONE_STROKE: Record<ScoreTone, string> = {
-  secondary: '#50653e',
-  tertiary: '#5b3918',
-  error: '#ba1a1a',
-  neutral: '#c2c7d0',
 }
 
 const TONE_TEXT: Record<ScoreTone, string> = {
@@ -71,7 +63,7 @@ export function ScoreRing({
               cy={px / 2}
               r={r}
               fill="none"
-              stroke={TONE_STROKE[tone]}
+              stroke={TONE_HEX[tone]}
               strokeWidth={stroke}
               strokeDasharray={c}
               strokeDashoffset={c * (1 - pct)}
