@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Leaflet attribution — keep it readable against the new design surfaces
+   without competing with the glass panels. */
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(248, 250, 249, 0.7);
+  color: #42474f;
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: #194976;
+}
+
+/* Custom pin reset — divIcon adds a white background by default. */
+.fishsignal-pin {
+  background: transparent !important;
+  border: none !important;
+}

@@ -1,3 +1,5 @@
+import { Tag, type TagVariant } from '@/components/ui/Tag'
+
 interface Report {
   id: string
   sourceName: string
@@ -14,12 +16,12 @@ interface Report {
   } | null
 }
 
-const sentimentColors: Record<string, string> = {
-  excellent: 'bg-green-100 text-green-800',
-  good: 'bg-emerald-100 text-emerald-800',
-  fair: 'bg-yellow-100 text-yellow-800',
-  poor: 'bg-orange-100 text-orange-800',
-  off: 'bg-red-100 text-red-800',
+const SENTIMENT_VARIANT: Record<string, TagVariant> = {
+  excellent: 'secondary',
+  good: 'secondary',
+  fair: 'tertiary',
+  poor: 'error',
+  off: 'error',
 }
 
 function formatSource(name: string): string {
@@ -31,16 +33,16 @@ function formatSource(name: string): string {
 
 export function ReportCard({ report }: { report: Report }) {
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="flex items-start justify-between">
+    <article className="rounded-2xl bg-surface-container-lowest p-6 transition-colors hover:bg-surface-container">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <span className="text-sm font-medium text-gray-500">
+          <p className="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
             {formatSource(report.sourceName)}
-          </span>
+          </p>
           {report.waterBody && (
             <a
               href={`/water/${report.waterBody.slug}`}
-              className="ml-2 text-sm font-semibold text-blue-700 hover:underline"
+              className="font-headline text-lg italic text-primary hover:underline"
             >
               {report.waterBody.name}
             </a>
@@ -48,31 +50,29 @@ export function ReportCard({ report }: { report: Report }) {
         </div>
         <div className="flex items-center gap-2">
           {report.reportDate && (
-            <span className="text-xs text-gray-400">{report.reportDate}</span>
+            <span className="font-label text-xs text-outline">{report.reportDate}</span>
           )}
           {report.sentiment && (
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${sentimentColors[report.sentiment] ?? 'bg-gray-100 text-gray-800'}`}
-            >
+            <Tag variant={SENTIMENT_VARIANT[report.sentiment] ?? 'neutral'}>
               {report.sentiment}
-            </span>
+            </Tag>
           )}
         </div>
       </div>
 
       {report.conditionsSummary && (
-        <p className="mt-2 text-sm text-gray-700">{report.conditionsSummary}</p>
+        <p className="mt-3 font-body text-sm text-on-surface">{report.conditionsSummary}</p>
       )}
 
       {report.flyPatternsMentioned.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1">
           {report.flyPatternsMentioned.map((fly) => (
-            <span key={fly} className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
+            <Tag key={fly} variant="primary">
               {fly}
-            </span>
+            </Tag>
           ))}
         </div>
       )}
-    </div>
+    </article>
   )
 }

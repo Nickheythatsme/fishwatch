@@ -11,7 +11,11 @@ export function FlowChart({ readings }: { readings: GaugeReading[] }) {
     .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
 
   if (validReadings.length === 0) {
-    return <p className="text-sm text-gray-500">No flow data available.</p>
+    return (
+      <div className="mt-3 rounded-2xl bg-surface-container-lowest p-5">
+        <p className="font-body text-sm text-on-surface-variant">No flow data available.</p>
+      </div>
+    )
   }
 
   const flows = validReadings.map((r) => r.flowCfs!)
@@ -32,20 +36,21 @@ export function FlowChart({ readings }: { readings: GaugeReading[] }) {
     .join(' ')
 
   return (
-    <div className="mt-3 rounded-lg border bg-white p-4">
-      <div className="flex justify-between text-xs text-gray-400">
+    <div className="mt-3 rounded-2xl bg-surface-container-lowest p-5">
+      <div className="flex justify-between font-label text-xs text-on-surface-variant">
         <span>{new Date(validReadings[0].measuredAt).toLocaleDateString()}</span>
-        <span>{new Date(validReadings[validReadings.length - 1].measuredAt).toLocaleDateString()}</span>
+        <span>
+          {new Date(validReadings[validReadings.length - 1].measuredAt).toLocaleDateString()}
+        </span>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="none">
-        <polyline
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          points={points}
-        />
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="my-2 w-full text-primary"
+        preserveAspectRatio="none"
+      >
+        <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points} />
       </svg>
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between font-label text-xs text-on-surface-variant">
         <span>{min.toLocaleString()} cfs</span>
         <span>{max.toLocaleString()} cfs</span>
       </div>

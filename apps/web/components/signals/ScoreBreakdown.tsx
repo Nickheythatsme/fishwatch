@@ -21,17 +21,19 @@ function ScoreBar({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 text-sm text-gray-600">{label}</span>
-      <div className="h-2 flex-1 rounded-full bg-gray-200">
+      <span className="w-32 font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+        {label}
+      </span>
+      <div className="h-2 flex-1 rounded-full bg-surface-container-high">
         <div
           className={`h-2 rounded-full ${scoreToColor(score)}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-16 text-right text-sm font-medium">
+      <span className="w-20 text-right font-body text-sm font-semibold text-on-surface">
         {score.toFixed(1)}
         {showLabel && (
-          <span className="ml-1 text-xs font-normal text-gray-400">
+          <span className="ml-1 font-label text-xs font-normal text-on-surface-variant">
             {scoreToLabel(score)}
           </span>
         )}
@@ -43,14 +45,14 @@ function ScoreBar({
 export function ScoreBreakdown({ signal, noData }: { signal: Signal; noData?: boolean }) {
   if (noData) {
     return (
-      <div className="rounded-lg border bg-white p-4 text-center text-sm text-gray-400">
+      <div className="rounded-2xl bg-surface-container-lowest p-5 text-center font-body text-sm text-on-surface-variant">
         No signal data available for this water body.
       </div>
     )
   }
 
   return (
-    <div className="space-y-2 rounded-lg border bg-white p-4">
+    <div className="space-y-3 rounded-2xl bg-surface-container-lowest p-5">
       <ScoreBar label="Overall Signal" score={signal.compositeScore} showLabel />
       <ScoreBar label="River Flow" score={signal.flowScore} />
       <ScoreBar label="Shop Reports" score={signal.sentimentScore} />

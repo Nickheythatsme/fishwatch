@@ -2,7 +2,9 @@
 
 import { gql, useQuery } from '@apollo/client'
 import { useParams } from 'next/navigation'
-import { SignalBadge } from '@/components/signals/SignalBadge'
+import { ScoreRing } from '@/components/ui/ScoreRing'
+import { Tag } from '@/components/ui/Tag'
+import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
 import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
 import { isNoDataSignal } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
@@ -27,6 +29,7 @@ const WATER_BODY_QUERY = gql`
         recommendedFlies
         summary
         scoreDate
+        topSection
       }
       signals(days: 30) {
         scoreDate
@@ -62,10 +65,10 @@ export default function WaterBodyPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 w-64 rounded bg-gray-200" />
-          <div className="h-48 rounded-lg bg-gray-200" />
+          <div className="h-32 rounded-2xl bg-surface-container-high" />
+          <div className="h-48 rounded-2xl bg-surface-container-high" />
         </div>
       </div>
     )
@@ -73,62 +76,78 @@ export default function WaterBodyPage() {
 
   if (error || !data?.waterBody) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-red-600">Water body not found.</p>
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        <p className="rounded-2xl bg-error-container/30 p-6 text-error">
+          Water body not found.
+        </p>
       </div>
     )
   }
 
   const wb = data.waterBody
+  const signal = wb.currentSignal
+  const noData = isNoDataSignal(signal)
+  const score = signal && !noData ? signal.compositeScore : null
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{wb.name}</h1>
-          <p className="mt-1 text-gray-600">{wb.description}</p>
-          {wb.typicalSpecies.length > 0 && (
-            <p className="mt-2 text-sm text-gray-500">
-              Species: {wb.typicalSpecies.join(', ')}
-            </p>
-          )}
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <section className="rounded-2xl bg-surface-container-low p-6 sm:p-8">
+        <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            {signal?.topSection && (
+              <p className="font-label text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+                {signal.topSection}
+              </p>
+            )}
+            <h1 className="mt-1 font-headline text-4xl italic text-primary">{wb.name}</h1>
+            {wb.description && (
+              <p className="mt-3 max-w-prose font-body text-on-surface-variant">
+                {wb.description}
+              </p>
+            )}
+            {wb.typicalSpecies.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {wb.typicalSpecies.map((s: string) => (
+                  <SpeciesIcon key={s} name={s} />
+                ))}
+                <span className="font-label text-xs uppercase tracking-wider text-on-surface-variant">
+                  {wb.typicalSpecies.join(' · ')}
+                </span>
+              </div>
+            )}
+          </div>
+          {signal && <ScoreRing score={score} noData={noData} size="lg" />}
         </div>
-        {wb.currentSignal && (
-          <SignalBadge
-            score={wb.currentSignal.compositeScore}
-            noData={isNoDataSignal(wb.currentSignal)}
-          />
-        )}
-      </div>
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Flow Data</h2>
+          <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">Flow Data</h2>
           <GaugeStatus flow={wb.currentFlow} />
           <FlowChart readings={wb.gaugeReadings} />
         </section>
 
-        {wb.currentSignal && (
+        {signal && (
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Signal Breakdown</h2>
-            <ScoreBreakdown
-              signal={wb.currentSignal}
-              noData={isNoDataSignal(wb.currentSignal)}
-            />
-            {!isNoDataSignal(wb.currentSignal) && wb.currentSignal.summary && (
-              <p className="mt-3 text-sm text-gray-700">{wb.currentSignal.summary}</p>
+            <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">
+              Signal Breakdown
+            </h2>
+            <ScoreBreakdown signal={signal} noData={noData} />
+            {!noData && signal.summary && (
+              <p className="mt-3 font-body text-sm text-on-surface-variant">
+                {signal.summary}
+              </p>
             )}
-            {!isNoDataSignal(wb.currentSignal) && wb.currentSignal.recommendedFlies.length > 0 && (
-              <div className="mt-3">
-                <h3 className="text-sm font-medium text-gray-600">Recommended Flies</h3>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {wb.currentSignal.recommendedFlies.map((fly: string) => (
-                    <span
-                      key={fly}
-                      className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800"
-                    >
+            {!noData && signal.recommendedFlies.length > 0 && (
+              <div className="mt-4">
+                <h3 className="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  Recommended Flies
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {signal.recommendedFlies.map((fly: string) => (
+                    <Tag key={fly} variant="primary">
                       {fly}
-                    </span>
+                    </Tag>
                   ))}
                 </div>
               </div>
@@ -137,8 +156,8 @@ export default function WaterBodyPage() {
         )}
       </div>
 
-      <section className="mt-8">
-        <h2 className="mb-4 text-lg font-semibold">Recent Reports</h2>
+      <section className="mt-10">
+        <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
         <ReportFeed reports={wb.recentReports} />
       </section>
     </div>
