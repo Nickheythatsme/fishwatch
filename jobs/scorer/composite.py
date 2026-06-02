@@ -11,7 +11,7 @@ WEIGHTS = {
 
 # Disagreement guard thresholds: when flow scores at or below FLOW_SUSPECT_MAX
 # while sentiment is at or above SENTIMENT_TRUSTED_MIN, the gauge data is
-# treated as suspect and flow is excluded from the composite.
+# treated as suspect and flow should be excluded from the signal.
 FLOW_SUSPECT_MAX = 2.0
 SENTIMENT_TRUSTED_MIN = 7.0
 
@@ -22,6 +22,9 @@ def is_flow_suspect(flow_score: float | None, sentiment_score: float | None) -> 
     If flow looks unfishable while recent shop reports are strong, the gauge
     data is almost certainly wrong (mis-mapped station, bad reading) rather
     than the river being blown out — people on the water are ground truth.
+
+    The caller (scorer.main) is responsible for excluding flow from both the
+    composite and persistence when this returns True.
     """
     return (
         flow_score is not None
@@ -39,13 +42,8 @@ def compute_composite(
     """Weighted average of available sub-scores.
 
     If a sub-score is missing, its weight is redistributed proportionally.
-
-    Disagreement guard: a flow score that contradicts strong shop reports
-    (see is_flow_suspect) is dropped and its weight redistributed.
+    Pure arithmetic — disagreement-guard filtering happens in the caller.
     """
-    if is_flow_suspect(flow_score, sentiment_score):
-        flow_score = None
-
     scores = {}
     if flow_score is not None:
         scores["flow"] = flow_score

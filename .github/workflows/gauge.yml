@@ -29,6 +29,8 @@ jobs:
         run: python -m scraper.sources.usgs
 
       - name: Fetch OWRD gauge readings
+        # A status-check function in `if` overrides the implicit success() gate,
+        # so this still runs when the USGS step fails (but not on cancellation).
         if: ${{ !cancelled() }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
