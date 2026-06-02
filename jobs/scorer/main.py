@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from db import get_connection
 
-from .composite import compute_composite, is_flow_suspect
+from .composite import FLOW_ONLY_CAP, compute_composite, is_flow_only, is_flow_suspect
 from .consensus import score_consensus
 from .flow_score import score_flow
 from .fly_ranking import build_alias_map, rank_flies
@@ -22,6 +22,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# How far back to look for reports. Recency decay (sentiment_score.report_weight)
+# means old reports contribute progressively less rather than counting at full
+# weight right up to this cutoff.
+REPORT_LOOKBACK_DAYS = 21
+
 
 def run() -> int:
     conn = get_connection()
@@ -29,8 +34,9 @@ def run() -> int:
     failures = 0
 
     try:
-        today = date.today().isoformat()
-        week_ago = (date.today() - timedelta(days=7)).isoformat()
+        today = date.today()
+        today_iso = today.isoformat()
+        lookback_start = (today - timedelta(days=REPORT_LOOKBACK_DAYS)).isoformat()
 
         # Build fly alias map once for all water bodies
         alias_map = build_alias_map(cur)
@@ -57,15 +63,18 @@ def run() -> int:
                 flow_row = cur.fetchone()
                 current_flow = flow_row[0] if flow_row else None
 
-                # Get recent reports (last 7 days)
+                # Get recent reports within the lookback window. Future-dated
+                # reports (bad extractions) are excluded.
                 cur.execute(
                     """
                     SELECT sentiment, source_name, species_mentioned,
                            fly_patterns_mentioned, report_date
                     FROM parsed_reports
-                    WHERE water_body_id = %s AND report_date >= %s
+                    WHERE water_body_id = %s
+                      AND report_date >= %s
+                      AND report_date <= %s
                     """,
-                    (wb_id, week_ago),
+                    (wb_id, lookback_start, today_iso),
                 )
                 recent_reports = [
                     {
@@ -80,8 +89,8 @@ def run() -> int:
 
                 # Compute sub-scores
                 f_score = score_flow(slug, current_flow)
-                s_score = score_sentiment(recent_reports)
-                c_score = score_consensus(recent_reports)
+                s_score = score_sentiment(recent_reports, today)
+                c_score = score_consensus(recent_reports, today)
 
                 # Disagreement guard: distrust gauge data that contradicts strong reports
                 flow_suspect = is_flow_suspect(f_score, s_score)
@@ -94,6 +103,12 @@ def run() -> int:
 
                 # Compute composite
                 composite = compute_composite(f_score, s_score, c_score)
+
+                # Flow-only cap: favorable flows with no report evidence shouldn't
+                # read as excellent conditions
+                flow_only = is_flow_only(f_score, s_score, c_score)
+                if flow_only and composite > FLOW_ONLY_CAP:
+                    composite = FLOW_ONLY_CAP
 
                 # Aggregate recommended species from reports
                 species: set[str] = set()
@@ -111,6 +126,8 @@ def run() -> int:
                         "excellent" if s_score >= 8 else "good" if s_score >= 6 else "fair" if s_score >= 4 else "poor"
                     )
                     summary_parts.append(f"Reports indicate {sentiment_label} conditions")
+                elif flow_only:
+                    summary_parts.append("No recent shop reports")
                 if current_flow is not None:
                     if flow_suspect:
                         summary_parts.append("gauge reading excluded (conflicts with reports)")
@@ -139,7 +156,7 @@ def run() -> int:
                     """,
                     (
                         wb_id,
-                        today,
+                        today_iso,
                         composite,
                         f_score,
                         s_score,
@@ -152,6 +169,7 @@ def run() -> int:
                                 "flow_cfs": current_flow,
                                 "report_count": len(recent_reports),
                                 "flow_suspect": flow_suspect,
+                                "flow_only": flow_only,
                             }
                         ),
                         datetime.now(UTC).isoformat(),

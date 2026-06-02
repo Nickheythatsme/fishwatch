@@ -15,6 +15,22 @@ WEIGHTS = {
 FLOW_SUSPECT_MAX = 2.0
 SENTIMENT_TRUSTED_MIN = 7.0
 
+# Cap for composites built from flow alone. Favorable flows with no report
+# evidence shouldn't read as "excellent" — no one has confirmed the fishing.
+FLOW_ONLY_CAP = 7.0
+
+
+def is_flow_only(
+    flow_score: float | None,
+    sentiment_score: float | None,
+    consensus_score: float | None,
+) -> bool:
+    """Whether the signal would be built from flow alone, with no report evidence.
+
+    The caller (scorer.main) should cap such composites at FLOW_ONLY_CAP.
+    """
+    return flow_score is not None and sentiment_score is None and consensus_score is None
+
 
 def is_flow_suspect(flow_score: float | None, sentiment_score: float | None) -> bool:
     """Whether the flow score contradicts shop reports badly enough to distrust it.

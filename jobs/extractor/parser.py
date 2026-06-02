@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
             {
                 "raw_report_id": raw_report_id,
                 "source_name": source_name,
-                "report_date": entry.get("report_date"),
+                "report_date": _normalize_report_date(entry.get("report_date")),
                 "sentiment": _normalize_sentiment(entry.get("sentiment")),
                 "species_mentioned": entry.get("species") or [],
                 "fly_patterns_mentioned": entry.get("fly_patterns") or [],
@@ -75,6 +76,21 @@ def _normalize_sentiment(value: Any) -> str | None:
         return None
     normalized = str(value).lower().strip()
     return normalized if normalized in VALID_SENTIMENTS else None
+
+
+def _normalize_report_date(value: Any) -> str | None:
+    """Validate report_date is an ISO date (YYYY-MM-DD). Returns None if not.
+
+    The caller falls back to the scrape date for None, and clamps dates that
+    land in the future (LLM hallucination).
+    """
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value.strip()).isoformat()
+    except ValueError:
+        logger.warning(f"Invalid report_date from extraction: {value!r}")
+        return None
 
 
 def _normalize_hatches(value: Any) -> list[dict]:

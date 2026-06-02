@@ -195,6 +195,15 @@ def run() -> int:
                     )
                     report_date = row.get("report_date") or fallback_date
 
+                    # A report can't be dated after it was scraped — clamp
+                    # future dates (LLM hallucination) to the scrape date
+                    if report_date > fallback_date:
+                        logger.warning(f"  Future report_date {report_date} clamped to {fallback_date}")
+                        report_date = fallback_date
+
+                    # Upsert on (water_body_id, source_name, report_date): re-scraped
+                    # content re-extracted later replaces the older extraction instead
+                    # of creating a duplicate report
                     cur.execute(
                         """
                         INSERT INTO parsed_reports
@@ -203,6 +212,19 @@ def run() -> int:
                              conditions_summary, flow_commentary, water_clarity,
                              hatches, river_section, raw_extraction)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (water_body_id, source_name, report_date)
+                        DO UPDATE SET
+                            raw_report_id = EXCLUDED.raw_report_id,
+                            sentiment = EXCLUDED.sentiment,
+                            species_mentioned = EXCLUDED.species_mentioned,
+                            fly_patterns_mentioned = EXCLUDED.fly_patterns_mentioned,
+                            conditions_summary = EXCLUDED.conditions_summary,
+                            flow_commentary = EXCLUDED.flow_commentary,
+                            water_clarity = EXCLUDED.water_clarity,
+                            hatches = EXCLUDED.hatches,
+                            river_section = EXCLUDED.river_section,
+                            raw_extraction = EXCLUDED.raw_extraction,
+                            extracted_at = NOW()
                         """,
                         (
                             row["raw_report_id"],

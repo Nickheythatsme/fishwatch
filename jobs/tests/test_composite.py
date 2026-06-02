@@ -1,6 +1,24 @@
 """Tests for composite signal computation and the disagreement guard."""
 
-from scorer.composite import compute_composite, is_flow_suspect
+from scorer.composite import FLOW_ONLY_CAP, compute_composite, is_flow_only, is_flow_suspect
+
+
+def test_is_flow_only():
+    """Flow-only means flow exists but there is zero report evidence."""
+    assert is_flow_only(10.0, None, None) is True
+    assert is_flow_only(10.0, 8.0, None) is False  # Has sentiment
+    assert is_flow_only(10.0, None, 8.0) is False  # Has consensus
+    assert is_flow_only(None, None, None) is False  # No flow either
+
+
+def test_flow_only_cap_applies():
+    """Caller pattern (scorer.main): a flow-only composite is capped."""
+    f_score, s_score, c_score = 10.0, None, None
+    composite = compute_composite(f_score, s_score, c_score)
+    assert composite == 10.0  # Pure arithmetic gives full flow score
+    if is_flow_only(f_score, s_score, c_score):
+        composite = min(composite, FLOW_ONLY_CAP)
+    assert composite == FLOW_ONLY_CAP
 
 
 def test_all_scores_present():
