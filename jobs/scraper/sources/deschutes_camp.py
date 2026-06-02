@@ -10,6 +10,11 @@ class DeschutesCampScraper(BaseScraper):
     Content in .progression-blog-content.
     """
 
+    # Bluehost shared hosting + heavy Elementor theme — frequently exceeds the
+    # default 30s budget from GHA runners.
+    goto_timeout_ms = 60_000
+    index_ready_selector = ".progression-blog-title a, h2.entry-title a, .entry-title a"
+
     def __init__(self):
         super().__init__(
             name="deschutes_camp",
