@@ -16,6 +16,9 @@ export const typeDefs = /* GraphQL */ `
       limit: Int = 20
       offset: Int = 0
     ): [Report!]!
+
+    """Aggregate "Local Conditions" panel data for a region."""
+    regionConditions(region: String!): RegionConditions
   }
 
   type WaterBody {
@@ -54,6 +57,19 @@ export const typeDefs = /* GraphQL */ `
     recommendedSpecies: [String!]!
     recommendedFlies: [String!]!
     summary: String
+    """Most-mentioned river_section across reports from the past 14 days. Null when no recent reports specify a section."""
+    topSection: String
+  }
+
+  type RegionConditions {
+    """Trend bucket for regional flow over the last 48h. One of: Rising, Falling, Stable."""
+    flowTrend: String
+    """Volume bucket for hatch mentions in regional reports over the last 7d. One of: Light, Moderate, Heavy."""
+    hatchVolume: String
+    """Latest non-null water temperature reading across region gauges, last 24h."""
+    waterTempF: Float
+    """Human-readable location label (e.g. Central Oregon)."""
+    locationLabel: String
   }
 
   type Report {

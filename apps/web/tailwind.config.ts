@@ -67,15 +67,6 @@ const config: Config = {
 
         outline: '#737780',
         'outline-variant': '#c2c7d0',
-
-        // Legacy palette — retained for back-compat during the redesign migration.
-        // Removed in Phase 6 once score-utils no longer references these classes.
-        signal: {
-          great: '#22c55e',
-          good: '#eab308',
-          fair: '#f97316',
-          poor: '#ef4444',
-        },
       },
     },
   },

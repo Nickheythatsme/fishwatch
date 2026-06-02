@@ -13,11 +13,13 @@ interface Report {
 
 export function ReportFeed({ reports }: { reports: Report[] }) {
   if (reports.length === 0) {
-    return <p className="text-sm text-gray-500">No reports yet.</p>
+    return (
+      <p className="font-body text-sm text-on-surface-variant">No reports yet.</p>
+    )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {reports.map((report) => (
         <ReportCard key={report.id} report={report} />
       ))}

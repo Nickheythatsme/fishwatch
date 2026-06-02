@@ -4,12 +4,19 @@ import { Suspense, useMemo, useState } from 'react'
 import { gql, useQuery } from '@apollo/client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { SignalCard } from '@/components/signals/SignalCard'
+import { Compass } from 'lucide-react'
+import {
+  IntelligencePanel,
+  type SortOption,
+} from '@/components/intelligence/IntelligencePanel'
+import type { IntelligenceCardWaterBody } from '@/components/intelligence/IntelligenceCard'
+import { LocalConditionsPanel } from '@/components/intelligence/LocalConditionsPanel'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { isNoDataSignal } from '@/components/signals/score-utils'
 
 const FishingMap = dynamic(() => import('@/components/map/FishingMap').then(m => m.FishingMap), {
   ssr: false,
-  loading: () => <div className="h-[400px] animate-pulse rounded-lg bg-gray-200" />,
+  loading: () => <div className="h-full w-full animate-pulse bg-surface-container-high" />,
 })
 
 const DASHBOARD_QUERY = gql`
@@ -18,6 +25,7 @@ const DASHBOARD_QUERY = gql`
       id
       name
       slug
+      region
       latitude
       longitude
       typicalSpecies
@@ -26,45 +34,23 @@ const DASHBOARD_QUERY = gql`
         flowScore
         sentimentScore
         consensusScore
-        summary
-        recommendedFlies
-        recommendedSpecies
         scoreDate
+        topSection
       }
       currentFlow
     }
   }
 `
 
-type SortOption = 'signal' | 'name' | 'updated' | 'flow'
-
 const VALID_SORTS: SortOption[] = ['signal', 'name', 'updated', 'flow']
 
-const SORT_OPTIONS: { key: SortOption; label: string }[] = [
-  { key: 'signal', label: 'Best Signal' },
-  { key: 'name', label: 'Name' },
-  { key: 'updated', label: 'Recently Updated' },
-  { key: 'flow', label: 'Current Flow' },
-]
-
-interface DashboardWaterBody {
-  id: string
-  name: string
-  slug: string
+interface DashboardWaterBody extends IntelligenceCardWaterBody {
+  region: string
   latitude: number
   longitude: number
-  typicalSpecies: string[]
-  currentFlow: number | null
-  currentSignal: {
-    compositeScore: number
-    flowScore: number | null
-    sentimentScore: number | null
-    consensusScore: number | null
-    summary: string | null
-    recommendedFlies: string[]
-    recommendedSpecies: string[]
-    scoreDate: string
-  } | null
+  currentSignal:
+    | (IntelligenceCardWaterBody['currentSignal'] & { scoreDate: string })
+    | null
 }
 
 function sortWaterBodies(waterBodies: DashboardWaterBody[], sortBy: SortOption): DashboardWaterBody[] {
@@ -102,6 +88,22 @@ function sortWaterBodies(waterBodies: DashboardWaterBody[], sortBy: SortOption):
   })
 }
 
+function pickRegion(waterBodies: DashboardWaterBody[]): string {
+  const counts = new Map<string, number>()
+  waterBodies.forEach((wb) => {
+    counts.set(wb.region, (counts.get(wb.region) ?? 0) + 1)
+  })
+  let best = 'Central Oregon'
+  let bestCount = 0
+  counts.forEach((count, region) => {
+    if (count > bestCount) {
+      best = region
+      bestCount = count
+    }
+  })
+  return best
+}
+
 export default function DashboardPage() {
   return (
     <Suspense>
@@ -132,66 +134,64 @@ function DashboardContent() {
   }
 
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
-  const waterBodies: DashboardWaterBody[] = data?.waterBodies ?? []
+  const waterBodies: DashboardWaterBody[] = useMemo(
+    () => data?.waterBodies ?? [],
+    [data]
+  )
   const sortedWaterBodies = useMemo(
     () => sortWaterBodies(waterBodies, sortBy),
     [waterBodies, sortBy]
   )
-
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-[400px] rounded-lg bg-gray-200" />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 rounded-lg bg-gray-200" />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const region = useMemo(() => pickRegion(waterBodies), [waterBodies])
 
   if (error) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <p className="text-red-600">Failed to load fishing data. Please try again.</p>
+      <div className="mx-auto max-w-3xl px-6 py-8">
+        <p className="rounded-2xl bg-error-container/30 p-6 text-error">
+          Failed to load fishing data. Please try again.
+        </p>
       </div>
     )
   }
 
+  const panel = (
+    <IntelligencePanel
+      waterBodies={sortedWaterBodies}
+      region={region}
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+      onHover={setHoveredId}
+    />
+  )
+
+  // Topbar (~65px) shows on md+ only. Mobile bottom nav adds 64px padding to
+  // <main> in layout. Height calc fills the remaining viewport precisely.
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Fishing Conditions</h1>
-
-      <FishingMap waterBodies={waterBodies} hoveredId={hoveredId} />
-
-      <div className="mt-8 flex items-center gap-2" role="radiogroup" aria-label="Sort water bodies">
-        <span className="text-sm font-medium text-gray-500">Sort:</span>
-        {SORT_OPTIONS.map((opt) => (
-          <button
-            key={opt.key}
-            role="radio"
-            aria-checked={sortBy === opt.key}
-            onClick={() => setSortBy(opt.key)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-              sortBy === opt.key
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+    <div className="flex h-[calc(100dvh-64px)] w-full md:h-[calc(100vh-65px)]">
+      <aside id="intelligence" className="hidden w-96 shrink-0 overflow-hidden md:block">
+        {panel}
+      </aside>
+      <div id="map" className="relative flex-1 overflow-hidden">
+        {loading && !data ? (
+          <div className="h-full w-full animate-pulse bg-surface-container-high" />
+        ) : (
+          <FishingMap waterBodies={waterBodies} hoveredId={hoveredId} />
+        )}
+        {region && <LocalConditionsPanel region={region} />}
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="absolute bottom-4 left-1/2 z-[400] flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary-container px-5 py-3 font-label text-sm font-semibold text-on-primary shadow-lg md:hidden"
+        >
+          <Compass className="h-4 w-4" />
+          View Intelligence
+        </button>
       </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sortedWaterBodies.map((wb) => (
-          <SignalCard key={wb.id} waterBody={wb} onHover={setHoveredId} />
-        ))}
-      </div>
+      <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Intelligence">
+        {panel}
+      </BottomSheet>
     </div>
   )
 }

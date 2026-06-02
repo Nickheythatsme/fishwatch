@@ -15,7 +15,10 @@ export function createContext() {
       },
     }
   )
-  return { supabase }
+  // Per-request caches keyed by water_body_id. Avoids re-querying parsed_reports
+  // once per Signal in a dashboard payload with many water bodies.
+  const topSectionCache = new Map<string, Promise<string | null>>()
+  return { supabase, topSectionCache }
 }
 
 export type GraphQLContext = ReturnType<typeof createContext>
