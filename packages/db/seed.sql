@@ -3,7 +3,7 @@ INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_
 ('Lower Deschutes River', 'lower-deschutes', 'oregon', 44.9572, -121.2695, ARRAY['14092500'], ARRAY['rainbow trout', 'steelhead', 'brown trout'], 'Trophy water below Pelton Dam. Year-round fishery with strong redsides.'),
 ('Upper Deschutes River', 'upper-deschutes', 'oregon', 43.9945, -121.3856, ARRAY['14050000'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Urban stretch through Bend. Accessible wade fishing.'),
 ('Middle Deschutes River', 'middle-deschutes', 'oregon', 44.3500, -121.2400, ARRAY['14076500'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Between Bend and Lake Billy Chinook. Less pressured canyon water.'),
-('Crooked River', 'crooked-river', 'oregon', 44.3072, -121.1300, ARRAY['14087400'], ARRAY['rainbow trout', 'whitefish', 'mountain whitefish'], 'Tailwater below Bowman Dam. Consistent year-round nymphing.'),
+('Crooked River', 'crooked-river', 'oregon', 44.3072, -121.1300, ARRAY['14080500'], ARRAY['rainbow trout', 'whitefish', 'mountain whitefish'], 'Tailwater below Bowman Dam. Consistent year-round nymphing.'),
 ('Fall River', 'fall-river', 'oregon', 43.7800, -121.6300, ARRAY['14057500'], ARRAY['rainbow trout', 'brown trout', 'brook trout'], 'Spring creek. Sight fishing to rising trout. Catch and release.'),
 ('Metolius River', 'metolius', 'oregon', 44.5800, -121.5100, ARRAY['14091500'], ARRAY['rainbow trout', 'bull trout', 'brook trout', 'whitefish'], 'Crystal-clear spring-fed river. Challenging technical fishing.'),
 ('Crane Prairie Reservoir', 'crane-prairie', 'oregon', 43.7930, -121.7830, '{}', ARRAY['rainbow trout', 'brook trout', 'largemouth bass'], 'Stillwater. Famous for large "cranebows." Best from boat or float tube.'),

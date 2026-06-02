@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from db import get_connection
 
-from .composite import compute_composite
+from .composite import compute_composite, is_flow_suspect
 from .consensus import score_consensus
 from .flow_score import score_flow
 from .fly_ranking import build_alias_map, rank_flies
@@ -83,6 +83,15 @@ def run() -> int:
                 s_score = score_sentiment(recent_reports)
                 c_score = score_consensus(recent_reports)
 
+                # Disagreement guard: distrust gauge data that contradicts strong reports
+                flow_suspect = is_flow_suspect(f_score, s_score)
+                if flow_suspect:
+                    logger.warning(
+                        f"{wb['name']}: flow score {f_score} contradicts strong reports "
+                        f"(sentiment={s_score}); excluding flow from signal"
+                    )
+                    f_score = None
+
                 # Compute composite
                 composite = compute_composite(f_score, s_score, c_score)
 
@@ -103,7 +112,10 @@ def run() -> int:
                     )
                     summary_parts.append(f"Reports indicate {sentiment_label} conditions")
                 if current_flow is not None:
-                    summary_parts.append(f"flow at {current_flow:.0f} cfs")
+                    if flow_suspect:
+                        summary_parts.append("gauge reading excluded (conflicts with reports)")
+                    else:
+                        summary_parts.append(f"flow at {current_flow:.0f} cfs")
                 summary = ". ".join(summary_parts) + "." if summary_parts else None
 
                 # Upsert score for today
@@ -135,7 +147,13 @@ def run() -> int:
                         list(species),
                         ranked_flies,
                         summary,
-                        json.dumps({"flow_cfs": current_flow, "report_count": len(recent_reports)}),
+                        json.dumps(
+                            {
+                                "flow_cfs": current_flow,
+                                "report_count": len(recent_reports),
+                                "flow_suspect": flow_suspect,
+                            }
+                        ),
                         datetime.now(UTC).isoformat(),
                     ),
                 )
