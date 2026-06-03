@@ -6,7 +6,7 @@ Computes composite fishing signals for each water body.
 import json
 import logging
 import sys
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from db import get_connection
 
@@ -34,7 +34,10 @@ def run() -> int:
     failures = 0
 
     try:
-        today = date.today()
+        # Use UTC to match the extractor, which derives report_date from
+        # raw_reports.fetched_at in UTC. A local-timezone "today" on a non-UTC
+        # host could treat a UTC same-day report as future and drop it.
+        today = datetime.now(UTC).date()
         today_iso = today.isoformat()
         lookback_start = (today - timedelta(days=REPORT_LOOKBACK_DAYS)).isoformat()
 
@@ -127,7 +130,12 @@ def run() -> int:
                     )
                     summary_parts.append(f"Reports indicate {sentiment_label} conditions")
                 elif flow_only:
-                    summary_parts.append("No recent shop reports")
+                    # No usable sentiment. Distinguish "no reports at all" from
+                    # "reports exist but none carried a sentiment rating".
+                    if recent_reports:
+                        summary_parts.append("No rated shop reports")
+                    else:
+                        summary_parts.append("No recent shop reports")
                 if current_flow is not None:
                     if flow_suspect:
                         summary_parts.append("gauge reading excluded (conflicts with reports)")

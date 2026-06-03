@@ -89,7 +89,9 @@ def _normalize_report_date(value: Any) -> str | None:
     try:
         return date.fromisoformat(value.strip()).isoformat()
     except ValueError:
-        logger.warning(f"Invalid report_date from extraction: {value!r}")
+        # Expected for free-form dates ("last Tuesday"); caller falls back to
+        # the scrape date. Logged at INFO to avoid noise.
+        logger.info(f"Non-ISO report_date from extraction, using scrape date: {value!r}")
         return None
 
 

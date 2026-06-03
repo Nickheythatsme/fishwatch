@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 SENTIMENT_VALUES = {
     "excellent": 10.0,
@@ -48,7 +48,7 @@ def score_sentiment(reports: list[dict], today: date | None = None) -> float | N
     Returns None if no reports have sentiment data.
     """
     if today is None:
-        today = date.today()
+        today = datetime.now(UTC).date()
 
     weighted_sum = 0.0
     total_weight = 0.0

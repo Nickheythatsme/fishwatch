@@ -38,8 +38,8 @@ def test_stale_disagreement_matters_less_than_fresh():
     assert stale_conflict > fresh_conflict
 
 
-def test_more_sources_bonus():
-    """With agreement below the cap, more sources earn a bonus."""
+def test_more_reports_corroboration_bonus():
+    """With agreement below the cap, more rated reports earn a corroboration bonus."""
     # Mixed good/excellent leaves headroom below the 10.0 cap
     two = score_consensus([_report("good"), _report("excellent")], TODAY)
     four = score_consensus([_report("good"), _report("excellent"), _report("good"), _report("excellent")], TODAY)
