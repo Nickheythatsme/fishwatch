@@ -1,0 +1,83 @@
+"""Tests for recency-weighted sentiment scoring."""
+
+from datetime import date, timedelta
+
+from scorer.sentiment_score import (
+    NEUTRAL_PRIOR_WEIGHT,
+    NEUTRAL_SCORE,
+    RECENCY_DECAY,
+    report_weight,
+    score_sentiment,
+)
+
+TODAY = date(2026, 6, 2)
+
+
+def _report(sentiment: str | None, days_old: int | None = 0) -> dict:
+    return {
+        "sentiment": sentiment,
+        "report_date": TODAY - timedelta(days=days_old) if days_old is not None else None,
+    }
+
+
+def test_no_reports_returns_none():
+    assert score_sentiment([], TODAY) is None
+
+
+def test_reports_without_sentiment_return_none():
+    assert score_sentiment([_report(None), _report("unknown-value")], TODAY) is None
+
+
+def test_fresh_report_blended_with_neutral_prior():
+    """A single fresh excellent report scores high but not a perfect 10."""
+    # (10*1.0 + 5*0.5) / 1.5 = 8.3
+    assert score_sentiment([_report("excellent", 0)], TODAY) == 8.3
+
+
+def test_score_fades_as_report_ages():
+    """The same report scores progressively lower as it ages."""
+    fresh = score_sentiment([_report("excellent", 0)], TODAY)
+    week_old = score_sentiment([_report("excellent", 7)], TODAY)
+    two_weeks_old = score_sentiment([_report("excellent", 14)], TODAY)
+    three_weeks_old = score_sentiment([_report("excellent", 21)], TODAY)
+
+    assert fresh > week_old > two_weeks_old > three_weeks_old
+    # By three weeks the score has nearly faded to neutral
+    assert abs(three_weeks_old - NEUTRAL_SCORE) < 0.5
+
+
+def test_recent_reports_outweigh_old_ones():
+    """A fresh poor report pulls the score down more than an old excellent one holds it up."""
+    reports = [_report("excellent", 14), _report("poor", 0)]
+    score = score_sentiment(reports, TODAY)
+    assert score < 5.0  # Dominated by the fresh poor report
+
+
+def test_multiple_fresh_reports_overcome_prior():
+    """Many fresh excellent reports converge toward 10."""
+    reports = [_report("excellent", 0) for _ in range(5)]
+    # (50 + 2.5) / 5.5 = 9.5
+    assert score_sentiment(reports, TODAY) == 9.5
+
+
+def test_missing_report_date_uses_default_age():
+    """Reports with no date get a conservative default age, not full weight."""
+    no_date = score_sentiment([_report("excellent", None)], TODAY)
+    fresh = score_sentiment([_report("excellent", 0)], TODAY)
+    assert no_date < fresh
+
+
+def test_report_weight_decay():
+    assert report_weight(_report("good", 0), TODAY) == 1.0
+    assert report_weight(_report("good", 7), TODAY) == RECENCY_DECAY**7
+
+
+def test_future_dated_report_clamped_to_full_weight():
+    """A future-dated report (bad data) is treated as fresh, not weighted > 1."""
+    future = {"sentiment": "excellent", "report_date": TODAY + timedelta(days=4)}
+    assert report_weight(future, TODAY) == 1.0
+
+
+def test_neutral_prior_constants_sane():
+    assert NEUTRAL_SCORE == 5.0
+    assert 0 < NEUTRAL_PRIOR_WEIGHT < 1

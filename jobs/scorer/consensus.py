@@ -1,35 +1,49 @@
-"""Score multi-source agreement for a water body."""
+"""Score agreement across reports for a water body."""
 
 from __future__ import annotations
 
-from .sentiment_score import SENTIMENT_VALUES
+from datetime import UTC, date, datetime
+
+from .sentiment_score import SENTIMENT_VALUES, report_weight
 
 
-def score_consensus(reports: list[dict]) -> float | None:
-    """Score how much sources agree with each other (0-10).
+def score_consensus(reports: list[dict], today: date | None = None) -> float | None:
+    """Score how much recent reports agree with each other (0-10).
 
-    High consensus = multiple sources reporting similar sentiment.
-    Low consensus = conflicting reports or only one source.
+    High consensus = multiple reports with similar sentiment.
+    Low consensus = conflicting reports, or fewer than two rated reports.
+
+    Reports are recency-weighted (see sentiment_score.report_weight), so a
+    fresh disagreement lowers consensus more than a stale one.
+
+    Note: agreement is measured across individual rated reports, not distinct
+    sources. After dedup each (source, date) is a single report, but one source
+    can still contribute several reports across the lookback window.
     """
-    sentiments = []
+    if today is None:
+        today = datetime.now(UTC).date()
+
+    weighted: list[tuple[float, float]] = []
     for r in reports:
         s = r.get("sentiment")
         if s and s in SENTIMENT_VALUES:
-            sentiments.append(SENTIMENT_VALUES[s])
+            weighted.append((SENTIMENT_VALUES[s], report_weight(r, today)))
 
-    if len(sentiments) < 2:
+    if len(weighted) < 2:
         return None
 
-    # Standard deviation as a measure of disagreement
-    mean = sum(sentiments) / len(sentiments)
-    variance = sum((s - mean) ** 2 for s in sentiments) / len(sentiments)
+    # Weighted standard deviation as a measure of disagreement
+    total_weight = sum(w for _, w in weighted)
+    mean = sum(v * w for v, w in weighted) / total_weight
+    variance = sum(w * (v - mean) ** 2 for v, w in weighted) / total_weight
     std_dev = variance**0.5
 
     # Max possible std_dev with our scale is 5 (all extremes)
     # Convert to 0-10 where 10 = perfect agreement
     agreement = max(0.0, 10.0 - (std_dev * 2))
 
-    # Bonus for having more sources (up to 1 point for 4+ sources)
-    source_bonus = min(1.0, (len(sentiments) - 1) * 0.33)
+    # Bonus for corroboration: more rated reports => more confidence in the
+    # agreement (up to 1 point at 4+ reports)
+    corroboration_bonus = min(1.0, (len(weighted) - 1) * 0.33)
 
-    return round(min(10.0, agreement + source_bonus), 1)
+    return round(min(10.0, agreement + corroboration_bonus), 1)

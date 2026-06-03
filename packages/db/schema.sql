@@ -106,6 +106,8 @@ CREATE INDEX idx_gauge_readings_station_time ON gauge_readings(station_id, measu
 CREATE INDEX idx_gauge_readings_water_body ON gauge_readings(water_body_id, measured_at DESC);
 CREATE INDEX idx_parsed_reports_water_body ON parsed_reports(water_body_id, report_date DESC);
 CREATE INDEX idx_parsed_reports_source ON parsed_reports(source_name, report_date DESC);
+-- One report per (water body, source, date) — the extractor upserts on conflict
+CREATE UNIQUE INDEX idx_parsed_reports_unique_report ON parsed_reports(water_body_id, source_name, report_date);
 CREATE INDEX idx_water_scores_water_body ON water_scores(water_body_id, score_date DESC);
 CREATE INDEX idx_raw_reports_source ON raw_reports(source_name, fetched_at DESC);
 CREATE INDEX idx_raw_reports_unprocessed ON raw_reports(is_processed) WHERE is_processed = FALSE;
