@@ -4,6 +4,7 @@ from .base import BaseScraper
 
 # Travel/out-of-scope keywords in post URLs to skip
 _SKIP_KEYWORDS = ["christmas-island", "alaska", "jungle", "belize", "bahamas", "mexico", "patagonia", "chile"]
+_INDEX_LINK_SELECTOR = 'h2.entry-title a, .entry-title a[rel="bookmark"], .post-title a'
 
 
 class CaddisFlyScraper(BaseScraper):
@@ -16,7 +17,8 @@ class CaddisFlyScraper(BaseScraper):
 
     # Site uses div.hentry > h2.entry-title (no <article> tags). Waiting for the
     # entry-title link guards against the runner reading the page before posts render.
-    index_ready_selector = "h2.entry-title a"
+    index_ready_selector = _INDEX_LINK_SELECTOR
+    index_ready_state = "attached"
 
     def __init__(self):
         super().__init__(
@@ -26,7 +28,7 @@ class CaddisFlyScraper(BaseScraper):
 
     async def discover_posts(self, page: Page) -> list[str]:
         links = await page.eval_on_selector_all(
-            'h2.entry-title a, .entry-title a[rel="bookmark"]',
+            _INDEX_LINK_SELECTOR,
             "els => els.map(el => el.href)",
         )
         return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]

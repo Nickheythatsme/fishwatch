@@ -26,6 +26,7 @@ class BaseScraper(ABC):
     # Guards against stub/cached responses or DOM that's not yet populated when
     # domcontentloaded fires.
     index_ready_selector: str | None = None
+    index_ready_state: str = "visible"
 
     def __init__(self, name: str, url: str):
         self.name = name
@@ -41,7 +42,11 @@ class BaseScraper(ABC):
             logger.warning(f"[{self.name}] index goto timed out after {self.goto_timeout_ms}ms, retrying")
             await page.goto(self.url, wait_until=self.goto_wait_until, timeout=self.goto_timeout_ms * 2)
         if self.index_ready_selector:
-            await page.wait_for_selector(self.index_ready_selector, timeout=self.goto_timeout_ms)
+            await page.wait_for_selector(
+                self.index_ready_selector,
+                state=self.index_ready_state,
+                timeout=self.goto_timeout_ms,
+            )
 
     async def _query_content(self, page: Page, *selectors: str) -> tuple[str, bool]:
         """Try selectors in order. Returns (text, used_body_fallback)."""
