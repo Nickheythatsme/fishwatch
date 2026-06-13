@@ -16,7 +16,7 @@
 }
 
 /* Custom pin reset — divIcon adds a white background by default. */
-.fishsignal-pin {
+.scorefish-pin {
   background: transparent !important;
   border: none !important;
 }

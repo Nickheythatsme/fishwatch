@@ -106,7 +106,7 @@ class BaseScraper(ABC):
         posts_failed = 0
         body_fallback_used = False
         artifact_paths: list[str] = []
-        context = await browser.new_context(user_agent="FishSignal/1.0 (fishing report aggregator)")
+        context = await browser.new_context(user_agent="Score.Fish/1.0 (fishing report aggregator)")
         context.set_default_timeout(self.goto_timeout_ms)
 
         try:

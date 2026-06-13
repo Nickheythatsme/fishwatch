@@ -1,5 +1,5 @@
 {
-  "name": "@fishsignal/web",
+  "name": "@score-fish/web",
   "private": true,
   "scripts": {
     "dev": "next dev",

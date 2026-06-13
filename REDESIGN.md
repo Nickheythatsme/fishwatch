@@ -1,4 +1,4 @@
-# FishSignal Dashboard Redesign
+# Score.Fish Dashboard Redesign
 
 ## Stitch Prototype
 

@@ -25,7 +25,7 @@ function createIcon(color: string, dot: number, label: string): L.DivIcon {
   const totalHeight = dot + GAP + CHIP_HEIGHT
   const width = Math.max(dot, 38)
   return L.divIcon({
-    className: 'fishsignal-pin',
+    className: 'scorefish-pin',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;line-height:1">
         <div style="width:${dot}px;height:${dot}px;border-radius:9999px;background:${color};border:2px solid #ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.35)"></div>
