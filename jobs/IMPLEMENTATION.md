@@ -1,6 +1,6 @@
 # Python Jobs Implementation Guide
 
-This document is the implementation roadmap for the FishSignal data pipeline: scraping fly shop reports, fetching USGS gauge data, extracting structured data via Claude, and computing composite fishing signals.
+This document is the implementation roadmap for the Score.Fish data pipeline: scraping fly shop reports, fetching USGS gauge data, extracting structured data via Claude, and computing composite fishing signals.
 
 ---
 
@@ -104,7 +104,7 @@ Key details:
 - Use `playwright.async_api` (async Playwright)
 - One browser instance and one reused page per scraper run
 - Set a 30-second timeout per page load
-- User-Agent: `"FishSignal/1.0 (fishing report aggregator)"`
+- User-Agent: `"Score.Fish/1.0 (fishing report aggregator)"`
 
 ### 1.3 Implement each concrete scraper
 

@@ -1,5 +1,5 @@
 {
-  "name": "@fishsignal/db",
+  "name": "@score-fish/db",
   "private": true,
   "version": "0.0.0",
   "main": "types.ts",

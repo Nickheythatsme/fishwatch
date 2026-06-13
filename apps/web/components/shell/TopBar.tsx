@@ -24,7 +24,7 @@ export function TopBar() {
             href="/"
             className="font-headline text-2xl italic text-primary-container"
           >
-            FishWatch
+            Score.Fish
           </Link>
           <nav className="flex items-center gap-6">
             {TABS.map((tab) => {

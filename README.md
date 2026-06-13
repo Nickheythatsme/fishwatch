@@ -1,4 +1,4 @@
-# FishSignal
+# Score.Fish
 
 Real-time fishing conditions intelligence for Central Oregon. Scrapes fly shop reports, combines with USGS gauge data, and produces actionable "where should I fish today?" signals.
 

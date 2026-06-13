@@ -25,7 +25,7 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
-  title: 'FishWatch — Pacific Northwest Fishing Intelligence',
+  title: 'Score.Fish — Pacific Northwest Fishing Intelligence',
   description:
     'Real-time fishing conditions, reports, and signals for Pacific Northwest rivers and lakes.',
 }

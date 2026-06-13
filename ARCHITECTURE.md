@@ -1,6 +1,6 @@
-# FishSignal Pipeline Architecture
+# Score.Fish Pipeline Architecture
 
-This document describes the offline data pipeline that powers FishSignal's fishing condition signals. The pipeline scrapes fly shop reports, extracts structured data via LLM, and computes composite scores — all orchestrated by GitHub Actions on a cron schedule.
+This document describes the offline data pipeline that powers Score.Fish's fishing condition signals. The pipeline scrapes fly shop reports, extracts structured data via LLM, and computes composite scores — all orchestrated by GitHub Actions on a cron schedule.
 
 ## High-Level Pipeline Flow
 
