@@ -60,7 +60,7 @@ export function WaterBodyMiniMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
       )}
-      <WaterPin waterBody={pin} />
+      <WaterPin waterBody={pin} interactive={false} />
     </MapContainer>
   )
 }

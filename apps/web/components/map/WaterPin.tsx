@@ -40,9 +40,11 @@ function createIcon(color: string, dot: number, label: string): L.DivIcon {
 interface WaterPinProps {
   waterBody: WaterBodyPin
   highlighted?: boolean
+  /** When false, renders a purely visual marker with no popup or click target. Defaults to true. */
+  interactive?: boolean
 }
 
-export function WaterPin({ waterBody, highlighted }: WaterPinProps) {
+export function WaterPin({ waterBody, highlighted, interactive = true }: WaterPinProps) {
   const score = waterBody.currentSignal?.compositeScore ?? null
   const tone = scoreToTone(score)
   const color = TONE_HEX[tone]
@@ -56,17 +58,21 @@ export function WaterPin({ waterBody, highlighted }: WaterPinProps) {
       position={[waterBody.latitude, waterBody.longitude]}
       icon={icon}
       zIndexOffset={highlighted ? 1000 : 0}
+      interactive={interactive}
+      keyboard={interactive}
     >
-      <Popup>
-        <div className="font-body text-sm">
-          <a href={`/water/${waterBody.slug}`} className="font-headline italic text-primary">
-            {waterBody.name}
-          </a>
-          {score != null && (
-            <p className="mt-1 text-on-surface-variant">Signal: {score.toFixed(1)} / 10</p>
-          )}
-        </div>
-      </Popup>
+      {interactive && (
+        <Popup>
+          <div className="font-body text-sm">
+            <a href={`/water/${waterBody.slug}`} className="font-headline italic text-primary">
+              {waterBody.name}
+            </a>
+            {score != null && (
+              <p className="mt-1 text-on-surface-variant">Signal: {score.toFixed(1)} / 10</p>
+            )}
+          </div>
+        </Popup>
+      )}
     </Marker>
   )
 }

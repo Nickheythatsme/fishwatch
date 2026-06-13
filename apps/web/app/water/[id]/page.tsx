@@ -133,7 +133,10 @@ export default function WaterBodyPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
         {wb.latitude != null && wb.longitude != null && (
-          <section className="overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1">
+          <section
+            aria-label={`Location map for ${wb.name}`}
+            className="overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1"
+          >
             <div className="h-44 w-full">
               <WaterBodyMiniMap
                 latitude={wb.latitude}
