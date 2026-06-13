@@ -2,6 +2,7 @@
 
 import { gql, useQuery } from '@apollo/client'
 import { useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
@@ -11,12 +12,22 @@ import { ReportFeed } from '@/components/reports/ReportFeed'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
 
+const WaterBodyMiniMap = dynamic(
+  () => import('@/components/map/WaterBodyMiniMap').then((m) => m.WaterBodyMiniMap),
+  {
+    ssr: false,
+    loading: () => <div className="h-full w-full animate-pulse bg-surface-container-high" />,
+  }
+)
+
 const WATER_BODY_QUERY = gql`
   query WaterBody($slug: String!) {
     waterBody(slug: $slug) {
       id
       name
       slug
+      latitude
+      longitude
       description
       typicalSpecies
       currentFlow
@@ -121,14 +132,31 @@ export default function WaterBodyPage() {
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section>
+        {wb.latitude != null && wb.longitude != null && (
+          <section
+            aria-label={`Location map for ${wb.name}`}
+            className="overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1"
+          >
+            <div className="h-44 w-full">
+              <WaterBodyMiniMap
+                latitude={wb.latitude}
+                longitude={wb.longitude}
+                name={wb.name}
+                slug={wb.slug}
+                score={score}
+              />
+            </div>
+          </section>
+        )}
+
+        <section className="lg:col-start-1 lg:row-start-1 lg:row-span-2">
           <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">Flow Data</h2>
           <GaugeStatus flow={wb.currentFlow} />
           <FlowChart readings={wb.gaugeReadings} />
         </section>
 
         {signal && (
-          <section>
+          <section className="lg:col-start-2 lg:row-start-2">
             <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">
               Signal Breakdown
             </h2>
