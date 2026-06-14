@@ -1,4 +1,5 @@
 import { createYoga, createSchema, type Plugin } from 'graphql-yoga'
+import type { NextRequest } from 'next/server'
 import { NoSchemaIntrospectionCustomRule } from 'graphql'
 import { typeDefs } from '@/lib/graphql/schema'
 import { resolvers } from '@/lib/graphql/resolvers'
@@ -34,4 +35,12 @@ const { handleRequest } = createYoga({
   plugins: [securityPlugin],
 })
 
-export { handleRequest as GET, handleRequest as POST }
+// graphql-yoga's handler signature doesn't satisfy Next 16's stricter
+// route-handler type checking, so wrap it in handlers with the expected shape.
+// createContext() ignores the server context, so nothing is lost by not
+// forwarding Next's route context.
+function handler(request: NextRequest) {
+  return handleRequest(request, {})
+}
+
+export { handler as GET, handler as POST }
