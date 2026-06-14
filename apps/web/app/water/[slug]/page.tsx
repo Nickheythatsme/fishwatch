@@ -183,6 +183,14 @@ export default async function WaterBodyPage({
   const noData = isNoDataSignal(signal)
   const score = signal && !noData ? signal.compositeScore : null
 
+  // graphql-js builds result objects with a null prototype (`Object.create(null)`),
+  // which React refuses to serialize across the Server→Client boundary
+  // ("Only plain objects … can be passed to Client Components"). FlowChart is the
+  // only client island here that receives objects, so spread each reading into a
+  // plain object literal before handing it over. (BackButton and the mini-map
+  // island only receive primitives, which serialize fine.)
+  const gaugeReadings = wb.gaugeReadings.map((r) => ({ ...r }))
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <BackButton className="mb-4 md:hidden" />
@@ -236,7 +244,7 @@ export default async function WaterBodyPage({
         <section className="lg:col-start-1 lg:row-start-1">
           <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">Flow Data</h2>
           <GaugeStatus flow={wb.currentFlow} />
-          <FlowChart readings={wb.gaugeReadings} />
+          <FlowChart readings={gaugeReadings} />
         </section>
 
         {signal && (

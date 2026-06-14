@@ -10,6 +10,19 @@ vi.mock('@/components/map/WaterBodyMiniMapIsland', () => ({
   WaterBodyMiniMapIsland: () => null,
 }))
 
+// FlowChart is the one client island that receives *objects* (gauge readings)
+// across the Server→Client boundary. Stub it to capture those props so we can
+// assert they're plain objects — graphql-js builds results with a null
+// prototype, which React refuses to serialize to a Client Component.
+const flowChartReadings: object[] = []
+vi.mock('@/components/gauges/FlowChart', () => ({
+  FlowChart: ({ readings }: { readings: object[] }) => {
+    flowChartReadings.length = 0
+    flowChartReadings.push(...readings)
+    return null
+  },
+}))
+
 // `notFound()` throws a sentinel we can assert on, mirroring Next's behavior of
 // aborting render and showing the not-found UI.
 const NOT_FOUND = new Error('NEXT_NOT_FOUND')
@@ -128,6 +141,14 @@ describe('water/[slug] page', () => {
     expect(html).toContain('4,200') // current flow, cfs formatted
     expect(html).toContain('cfs')
     expect(html).toContain('Salmonflies are popping near Maupin.') // report text
+
+    // Gauge readings handed to the FlowChart client island must be plain objects.
+    // graphql-js returns null-prototype objects, which would crash the Next.js
+    // build's Server→Client serialization, so the page re-wraps them.
+    expect(flowChartReadings.length).toBeGreaterThan(0)
+    for (const reading of flowChartReadings) {
+      expect(Object.getPrototypeOf(reading)).toBe(Object.prototype)
+    }
   })
 
   it('calls notFound() for an unknown slug', async () => {
