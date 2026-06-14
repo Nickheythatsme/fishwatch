@@ -29,7 +29,7 @@ export function TopBar() {
           >
             <Image
               src="/favicon-96x96.png"
-              alt="Score.Fish"
+              alt=""
               width={36}
               height={36}
               priority
