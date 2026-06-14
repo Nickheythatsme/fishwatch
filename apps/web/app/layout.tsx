@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Manrope, Newsreader } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
 import { MobileNav } from '@/components/shell/MobileNav'
@@ -62,6 +63,7 @@ export default function RootLayout({
             <MobileNav />
           </NavigationHistoryProvider>
         </ApolloWrapper>
+        <Analytics />
       </body>
     </html>
   )
