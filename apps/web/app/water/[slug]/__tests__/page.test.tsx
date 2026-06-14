@@ -117,7 +117,9 @@ beforeEach(() => {
 
 describe('water/[slug] page', () => {
   it('server-renders the score, summary, flow, and report text into HTML', async () => {
-    const element = await WaterBodyPage({ params: { slug: 'lower-deschutes' } })
+    const element = await WaterBodyPage({
+      params: Promise.resolve({ slug: 'lower-deschutes' }),
+    })
     const html = renderToStaticMarkup(element)
 
     expect(html).toContain('Lower Deschutes River')
@@ -130,9 +132,9 @@ describe('water/[slug] page', () => {
 
   it('calls notFound() for an unknown slug', async () => {
     tables = { water_bodies: [] }
-    await expect(WaterBodyPage({ params: { slug: 'does-not-exist' } })).rejects.toBe(
-      NOT_FOUND
-    )
+    await expect(
+      WaterBodyPage({ params: Promise.resolve({ slug: 'does-not-exist' }) })
+    ).rejects.toBe(NOT_FOUND)
   })
 
   it('generateStaticParams returns the Oregon water slugs', async () => {

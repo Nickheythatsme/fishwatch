@@ -150,12 +150,25 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function WaterBodyPage({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export default async function WaterBodyPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
 
   // The `waterBody` resolver uses `.single()`, so PostgREST returns an error
   // (which `ssrQuery` re-throws) when no row matches an unknown slug. Treat that
   // throw as a 404 rather than letting it bubble up as a 500.
+  //
+  // This is the deliberately catch-all "Option 1" from issue #52: any ssrQuery
+  // failure becomes a 404. We don't narrow to the PGRST116 "no rows" code
+  // because `ssrQuery` collapses GraphQL errors to a flat message string (the
+  // PostgREST code isn't preserved). The tradeoff: if the DB is unreachable when
+  // an un-prebuilt slug is first requested, ISR could cache that 404 for up to
+  // `revalidate` seconds. The cleaner fix — switching the resolver to
+  // `.maybeSingle()` so unknown slugs return null — also changes the public HTTP
+  // GraphQL contract, so it's tracked separately rather than done here.
   let data: WaterPageData
   try {
     data = await ssrQuery<WaterPageData>(WATER_BODY_QUERY, { slug })
