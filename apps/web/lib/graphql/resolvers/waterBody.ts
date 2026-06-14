@@ -1,4 +1,5 @@
 import { GraphQLContext } from '../context'
+import { clampInt, LIMITS } from '../limits'
 
 export const waterBodyResolvers = {
   Query: {
@@ -30,13 +31,14 @@ export const waterBodyResolvers = {
     },
 
     topPicks: async (_: unknown, args: { limit: number }, ctx: GraphQLContext) => {
+      const limit = clampInt(args.limit, LIMITS.topPicks.limit.default, LIMITS.topPicks.limit.max)
       const today = new Date().toISOString().split('T')[0]
       const { data: scores, error } = await ctx.supabase
         .from('water_scores')
         .select('water_body_id')
         .eq('score_date', today)
         .order('composite_score', { ascending: false })
-        .limit(args.limit)
+        .limit(limit)
 
       if (error) throw error
       if (!scores?.length) return []
@@ -65,8 +67,9 @@ export const waterBodyResolvers = {
     },
 
     signals: async (parent: { id: string }, args: { days: number }, ctx: GraphQLContext) => {
+      const days = clampInt(args.days, LIMITS.signals.days.default, LIMITS.signals.days.max, 1)
       const since = new Date()
-      since.setDate(since.getDate() - args.days)
+      since.setDate(since.getDate() - days)
 
       const { data } = await ctx.supabase
         .from('water_scores')
@@ -79,19 +82,30 @@ export const waterBodyResolvers = {
     },
 
     recentReports: async (parent: { id: string }, args: { limit: number }, ctx: GraphQLContext) => {
+      const limit = clampInt(
+        args.limit,
+        LIMITS.recentReports.limit.default,
+        LIMITS.recentReports.limit.max
+      )
       const { data } = await ctx.supabase
         .from('parsed_reports')
         .select('*')
         .eq('water_body_id', parent.id)
         .order('report_date', { ascending: false })
-        .limit(args.limit)
+        .limit(limit)
 
       return data ?? []
     },
 
     gaugeReadings: async (parent: { id: string }, args: { hours: number }, ctx: GraphQLContext) => {
+      const hours = clampInt(
+        args.hours,
+        LIMITS.gaugeReadings.hours.default,
+        LIMITS.gaugeReadings.hours.max,
+        1
+      )
       const since = new Date()
-      since.setHours(since.getHours() - args.hours)
+      since.setHours(since.getHours() - hours)
 
       const { data } = await ctx.supabase
         .from('gauge_readings')
