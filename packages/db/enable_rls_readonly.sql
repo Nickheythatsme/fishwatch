@@ -33,10 +33,19 @@ ALTER TABLE water_scores   ENABLE ROW LEVEL SECURITY;
 -- 4. Public read-only policies. SELECT-only + no write policies means the anon
 --    and authenticated roles can read but never INSERT/UPDATE/DELETE.
 --    The pipeline's owner connection bypasses RLS, so writes are unaffected.
+--    Postgres has no CREATE POLICY IF NOT EXISTS, so DROP-then-CREATE keeps this
+--    script idempotent for disaster-recovery re-runs.
+DROP POLICY IF EXISTS "public read" ON water_bodies;
 CREATE POLICY "public read" ON water_bodies   FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON species;
 CREATE POLICY "public read" ON species        FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON fly_patterns;
 CREATE POLICY "public read" ON fly_patterns   FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON raw_reports;
 CREATE POLICY "public read" ON raw_reports    FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON parsed_reports;
 CREATE POLICY "public read" ON parsed_reports FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON gauge_readings;
 CREATE POLICY "public read" ON gauge_readings FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "public read" ON water_scores;
 CREATE POLICY "public read" ON water_scores   FOR SELECT TO anon, authenticated USING (true);
