@@ -6,18 +6,21 @@ export interface ReportFilters {
 const SOURCE_PARAM = 'source'
 const SPECIES_PARAM = 'species'
 
-function splitList(value: string | null): string[] {
+function splitList(value: string | null, lowercase = false): string[] {
   if (!value) return []
-  return value
+  const items = value
     .split(',')
-    .map((v) => v.trim())
+    .map((v) => (lowercase ? v.trim().toLowerCase() : v.trim()))
     .filter(Boolean)
+  return Array.from(new Set(items))
 }
 
 export function parseReportFilters(params: URLSearchParams): ReportFilters {
   return {
     sources: splitList(params.get(SOURCE_PARAM)),
-    species: splitList(params.get(SPECIES_PARAM)),
+    // Species are canonicalized to lowercase so UI selection state and the
+    // case-insensitive matching in matchesReportFilters stay in sync.
+    species: splitList(params.get(SPECIES_PARAM), true),
   }
 }
 

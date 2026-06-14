@@ -8,6 +8,7 @@ import {
   activeFilterCount,
   matchesReportFilters,
   parseReportFilters,
+  serializeReportFilters,
 } from '@/components/reports/filters'
 
 const REPORTS_QUERY = gql`
@@ -97,7 +98,11 @@ function ReportsContent() {
   const visible = reports.filter((report) => matchesReportFilters(report, filters))
 
   function clearFilters() {
-    router.replace(pathname, { scroll: false })
+    const qs = serializeReportFilters(new URLSearchParams(searchParams.toString()), {
+      sources: [],
+      species: [],
+    })
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
 
   return (

@@ -22,6 +22,11 @@ describe('parseReportFilters', () => {
       species: ['trout', 'steelhead'],
     })
   })
+
+  it('canonicalizes species to lowercase and dedupes', () => {
+    const params = new URLSearchParams('species=Trout,TROUT,Steelhead')
+    expect(parseReportFilters(params).species).toEqual(['trout', 'steelhead'])
+  })
 })
 
 describe('serializeReportFilters', () => {

@@ -27,6 +27,11 @@ interface OptionsResponse {
   reports: { id: string; sourceName: string; speciesMentioned: string[] }[]
 }
 
+interface FilterOption {
+  value: string
+  label: string
+}
+
 function formatSource(name: string): string {
   return name
     .split('_')
@@ -75,24 +80,29 @@ export function ReportFilters() {
   )
   const count = activeFilterCount(filters)
 
-  // Only fetch option lists once the dropdown has been opened.
-  const { data } = useQuery<OptionsResponse>(FILTER_OPTIONS_QUERY, {
-    variables: { limit: 200 },
+  // Only fetch option lists once the dropdown has been opened. The limit matches
+  // the reports page so every offered option corresponds to a displayable report.
+  const { data, loading } = useQuery<OptionsResponse>(FILTER_OPTIONS_QUERY, {
+    variables: { limit: 100 },
     skip: !open,
   })
 
   const { sourceOptions, speciesOptions } = useMemo(() => {
     const sources = new Set<string>()
-    const species = new Set<string>()
+    const species = new Set<string>() // canonical (lowercase)
     for (const r of data?.reports ?? []) {
       if (r.sourceName) sources.add(r.sourceName)
       for (const s of r.speciesMentioned ?? []) {
-        if (s) species.add(s)
+        if (s) species.add(s.toLowerCase())
       }
     }
+    const toSorted = (set: Set<string>, label: (v: string) => string): FilterOption[] =>
+      Array.from(set)
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: label(value) }))
     return {
-      sourceOptions: Array.from(sources).sort((a, b) => a.localeCompare(b)),
-      speciesOptions: Array.from(species).sort((a, b) => a.localeCompare(b)),
+      sourceOptions: toSorted(sources, formatSource),
+      speciesOptions: toSorted(species, formatSpecies),
     }
   }, [data])
 
@@ -175,14 +185,14 @@ export function ReportFilters() {
               title="Source"
               options={sourceOptions}
               selected={filters.sources}
-              format={formatSource}
+              loading={loading}
               onToggle={(v) => toggle('sources', v)}
             />
             <FilterSection
               title="Species"
               options={speciesOptions}
               selected={filters.species}
-              format={formatSpecies}
+              loading={loading}
               onToggle={(v) => toggle('species', v)}
             />
           </div>
@@ -194,34 +204,36 @@ export function ReportFilters() {
 
 interface FilterSectionProps {
   title: string
-  options: string[]
+  options: FilterOption[]
   selected: string[]
-  format: (value: string) => string
+  loading: boolean
   onToggle: (value: string) => void
 }
 
-function FilterSection({ title, options, selected, format, onToggle }: FilterSectionProps) {
+function FilterSection({ title, options, selected, loading, onToggle }: FilterSectionProps) {
   return (
     <div className="mt-4">
       <p className="mb-2 font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
         {title}
       </p>
-      {options.length === 0 ? (
+      {loading && options.length === 0 ? (
+        <p className="font-body text-xs text-outline">Loading…</p>
+      ) : options.length === 0 ? (
         <p className="font-body text-xs text-outline">No options available.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {options.map((opt) => {
-            const active = selected.includes(opt)
+            const active = selected.includes(opt.value)
             return (
               <button
-                key={opt}
+                key={opt.value}
                 type="button"
                 role="menuitemcheckbox"
                 aria-checked={active}
-                onClick={() => onToggle(opt)}
+                onClick={() => onToggle(opt.value)}
                 className={chipClasses(active)}
               >
-                {format(opt)}
+                {opt.label}
               </button>
             )
           })}
