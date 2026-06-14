@@ -3,6 +3,7 @@ import { Tag, type TagVariant } from '@/components/ui/Tag'
 interface Report {
   id: string
   sourceName: string
+  sourceUrl?: string | null
   reportDate?: string | null
   sentiment?: string | null
   conditionsSummary?: string | null
@@ -72,6 +73,17 @@ export function ReportCard({ report }: { report: Report }) {
             </Tag>
           ))}
         </div>
+      )}
+
+      {report.sourceUrl && (
+        <a
+          href={report.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1 font-label text-xs font-semibold text-primary hover:underline"
+        >
+          View original report ↗
+        </a>
       )}
     </article>
   )

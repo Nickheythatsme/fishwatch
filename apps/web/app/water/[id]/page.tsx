@@ -50,6 +50,7 @@ const WATER_BODY_QUERY = gql`
       recentReports(limit: 10) {
         id
         sourceName
+        sourceUrl
         reportDate
         sentiment
         conditionsSummary

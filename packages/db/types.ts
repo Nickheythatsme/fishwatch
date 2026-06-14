@@ -42,6 +42,7 @@ export interface ParsedReport {
   raw_report_id: string
   water_body_id: string | null
   source_name: string
+  source_url: string | null
   report_date: string | null
   sentiment: 'excellent' | 'good' | 'fair' | 'poor' | 'off' | null
   species_mentioned: string[]

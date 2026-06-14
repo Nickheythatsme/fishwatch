@@ -3,6 +3,7 @@ import { ReportCard } from './ReportCard'
 interface Report {
   id: string
   sourceName: string
+  sourceUrl?: string | null
   reportDate?: string | null
   sentiment?: string | null
   conditionsSummary?: string | null
