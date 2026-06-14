@@ -11,6 +11,7 @@ import { isNoDataSignal } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
+import { BackButton } from '@/components/shell/BackButton'
 
 const WaterBodyMiniMap = dynamic(
   () => import('@/components/map/WaterBodyMiniMap').then((m) => m.WaterBodyMiniMap),
@@ -77,6 +78,7 @@ export default function WaterBodyPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
+        <BackButton className="mb-4 md:hidden" />
         <div className="animate-pulse space-y-4">
           <div className="h-32 rounded-2xl bg-surface-container-high" />
           <div className="h-48 rounded-2xl bg-surface-container-high" />
@@ -88,6 +90,7 @@ export default function WaterBodyPage() {
   if (error || !data?.waterBody) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
+        <BackButton className="mb-4 md:hidden" />
         <p className="rounded-2xl bg-error-container/30 p-6 text-error">
           Water body not found.
         </p>
@@ -102,6 +105,7 @@ export default function WaterBodyPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      <BackButton className="mb-4 md:hidden" />
       <section className="rounded-2xl bg-surface-container-low p-6 sm:p-8">
         <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
