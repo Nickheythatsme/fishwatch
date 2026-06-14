@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Manrope, Newsreader } from 'next/font/google'
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
@@ -29,6 +29,23 @@ export const metadata: Metadata = {
   title: 'Score.Fish — Pacific Northwest Fishing Intelligence',
   description:
     'Real-time fishing conditions, reports, and signals for Pacific Northwest rivers and lakes.',
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-96x96.png', type: 'image/png', sizes: '96x96' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
+  appleWebApp: {
+    title: 'Score.Fish',
+    statusBarStyle: 'default',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#0f426f',
 }
 
 export default function RootLayout({
