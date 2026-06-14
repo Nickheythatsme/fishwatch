@@ -135,9 +135,9 @@ export default function WaterBodyPage() {
         {wb.latitude != null && wb.longitude != null && (
           <section
             aria-label={`Location map for ${wb.name}`}
-            className="overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1"
+            className="isolate overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1"
           >
-            <div className="h-44 w-full">
+            <div className="h-44 w-full lg:h-full">
               <WaterBodyMiniMap
                 latitude={wb.latitude}
                 longitude={wb.longitude}
@@ -149,7 +149,7 @@ export default function WaterBodyPage() {
           </section>
         )}
 
-        <section className="lg:col-start-1 lg:row-start-1 lg:row-span-2">
+        <section className="lg:col-start-1 lg:row-start-1">
           <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">Flow Data</h2>
           <GaugeStatus flow={wb.currentFlow} />
           <FlowChart readings={wb.gaugeReadings} />
@@ -182,12 +182,12 @@ export default function WaterBodyPage() {
             )}
           </section>
         )}
-      </div>
 
-      <section className="mt-10">
-        <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
-        <ReportFeed reports={wb.recentReports} />
-      </section>
+        <section className="lg:col-start-1 lg:row-start-2">
+          <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
+          <ReportFeed reports={wb.recentReports} />
+        </section>
+      </div>
     </div>
   )
 }
