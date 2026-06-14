@@ -1,4 +1,5 @@
 import { GraphQLContext } from '../context'
+import { clampInt, LIMITS } from '../limits'
 
 export const reportResolvers = {
   Query: {
@@ -7,11 +8,13 @@ export const reportResolvers = {
       args: { waterBodyId?: string; sourceName?: string; limit: number; offset: number },
       ctx: GraphQLContext
     ) => {
+      const limit = clampInt(args.limit, LIMITS.reports.limit.default, LIMITS.reports.limit.max)
+      const offset = clampInt(args.offset, LIMITS.reports.offset.default, LIMITS.reports.offset.max)
       let query = ctx.supabase
         .from('parsed_reports')
         .select('*')
         .order('report_date', { ascending: false })
-        .range(args.offset, args.offset + args.limit - 1)
+        .range(offset, offset + limit - 1)
 
       if (args.waterBodyId) {
         query = query.eq('water_body_id', args.waterBodyId)
