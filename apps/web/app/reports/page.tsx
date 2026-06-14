@@ -1,7 +1,14 @@
 'use client'
 
+import { Suspense } from 'react'
 import { gql, useQuery } from '@apollo/client'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ReportCard } from '@/components/reports/ReportCard'
+import {
+  activeFilterCount,
+  matchesReportFilters,
+  parseReportFilters,
+} from '@/components/reports/filters'
 
 const REPORTS_QUERY = gql`
   query Reports($limit: Int, $offset: Int) {
@@ -41,9 +48,24 @@ interface ReportsResponse {
 }
 
 export default function ReportsPage() {
+  return (
+    <Suspense>
+      <ReportsContent />
+    </Suspense>
+  )
+}
+
+function ReportsContent() {
   const { data, loading, error } = useQuery<ReportsResponse>(REPORTS_QUERY, {
-    variables: { limit: 50, offset: 0 },
+    variables: { limit: 100, offset: 0 },
   })
+
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const filters = parseReportFilters(new URLSearchParams(searchParams.toString()))
+  const hasFilters = activeFilterCount(filters) > 0
 
   if (loading) {
     return (
@@ -72,18 +94,41 @@ export default function ReportsPage() {
   }
 
   const reports = data?.reports ?? []
+  const visible = reports.filter((report) => matchesReportFilters(report, filters))
+
+  function clearFilters() {
+    router.replace(pathname, { scroll: false })
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-6 font-headline text-3xl italic text-primary">Fishing Reports</h1>
       {reports.length === 0 ? (
         <p className="font-body text-on-surface-variant">No reports available yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {reports.map((report) => (
-            <ReportCard key={report.id} report={report} />
-          ))}
+      ) : visible.length === 0 ? (
+        <div className="font-body text-on-surface-variant">
+          <p>No reports match your filters.</p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-2 font-label text-sm font-semibold text-primary hover:underline"
+          >
+            Clear filters
+          </button>
         </div>
+      ) : (
+        <>
+          {hasFilters && (
+            <p className="mb-4 font-label text-xs text-on-surface-variant">
+              Showing {visible.length} of {reports.length} reports
+            </p>
+          )}
+          <div className="space-y-4">
+            {visible.map((report) => (
+              <ReportCard key={report.id} report={report} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

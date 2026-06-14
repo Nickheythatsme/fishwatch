@@ -1,8 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Filter, UserCircle } from 'lucide-react'
+import { UserCircle } from 'lucide-react'
+import { ReportFilters } from '@/components/reports/ReportFilters'
 
 const TABS = [
   { href: '/', label: 'Intelligence' },
@@ -47,15 +49,17 @@ export function TopBar() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="group flex items-center gap-2 rounded-md bg-surface-container-low px-4 py-2 transition-colors hover:bg-surface-container"
+          <Suspense
+            fallback={
+              <div className="flex items-center gap-2 rounded-md bg-surface-container-low px-4 py-2">
+                <span className="font-label text-xs font-semibold text-on-surface-variant">
+                  FILTER REPORTS
+                </span>
+              </div>
+            }
           >
-            <Filter className="h-4 w-4 text-outline group-hover:text-primary-container" />
-            <span className="font-label text-xs font-semibold text-on-surface-variant">
-              FILTER REPORTS
-            </span>
-          </button>
+            <ReportFilters />
+          </Suspense>
           <button
             type="button"
             aria-label="Account"
