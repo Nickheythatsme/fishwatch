@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
+import { useCanGoBack } from '@/components/shell/NavigationHistoryProvider'
 
 interface BackButtonProps {
   /**
@@ -17,9 +18,11 @@ interface BackButtonProps {
  * A "back" affordance for detail pages. On mobile the global TopBar is hidden,
  * so detail pages have no top-of-page navigation — this fills that gap.
  *
- * Prefers the browser's back stack (returning the user to wherever they came
- * from — the homepage or the reports list) and falls back to a known route when
- * there is no history to pop.
+ * When the user reached this page via an in-app navigation we pop the history
+ * stack (returning them to wherever they came from — the homepage or the
+ * reports list). When they arrived fresh (a deep link or shared URL) there is
+ * no in-app entry to pop, so we navigate to a known route instead of risking
+ * `router.back()` sending them out of the app.
  */
 export function BackButton({
   fallbackHref = '/',
@@ -27,11 +30,10 @@ export function BackButton({
   className,
 }: BackButtonProps) {
   const router = useRouter()
+  const canGoBack = useCanGoBack()
 
   function handleClick() {
-    // `history.length > 1` means there is an entry to pop back to within the
-    // tab. Otherwise (direct/deep link) send the user to a sensible home base.
-    if (typeof window !== 'undefined' && window.history.length > 1) {
+    if (canGoBack) {
       router.back()
     } else {
       router.push(fallbackHref)

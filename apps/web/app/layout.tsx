@@ -3,6 +3,7 @@ import { Manrope, Newsreader } from 'next/font/google'
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
 import { MobileNav } from '@/components/shell/MobileNav'
+import { NavigationHistoryProvider } from '@/components/shell/NavigationHistoryProvider'
 import './globals.css'
 
 const newsreader = Newsreader({
@@ -39,9 +40,11 @@ export default function RootLayout({
     <html lang="en" className={`${newsreader.variable} ${manrope.variable}`}>
       <body className="min-h-screen bg-surface font-body text-on-surface antialiased">
         <ApolloWrapper>
-          <TopBar />
-          <main className="pb-16 md:pb-0">{children}</main>
-          <MobileNav />
+          <NavigationHistoryProvider>
+            <TopBar />
+            <main className="pb-16 md:pb-0">{children}</main>
+            <MobileNav />
+          </NavigationHistoryProvider>
         </ApolloWrapper>
       </body>
     </html>
