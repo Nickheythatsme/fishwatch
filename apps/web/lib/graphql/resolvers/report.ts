@@ -28,6 +28,7 @@ export const reportResolvers = {
 
   Report: {
     sourceName: (parent: Record<string, unknown>) => parent.source_name,
+    sourceUrl: (parent: Record<string, unknown>) => parent.source_url ?? null,
     reportDate: (parent: Record<string, unknown>) => parent.report_date,
     speciesMentioned: (parent: Record<string, unknown>) =>
       (parent.species_mentioned as string[]) ?? [],

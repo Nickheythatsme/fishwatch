@@ -75,6 +75,7 @@ export const typeDefs = /* GraphQL */ `
   type Report {
     id: ID!
     sourceName: String!
+    sourceUrl: String
     reportDate: String
     sentiment: Sentiment
     speciesMentioned: [String!]!

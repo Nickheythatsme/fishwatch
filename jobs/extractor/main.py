@@ -88,9 +88,17 @@ def run() -> int:
         client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
         # Fetch unprocessed reports
-        cur.execute("SELECT id, source_name, raw_html, fetched_at FROM raw_reports WHERE is_processed = FALSE")
+        cur.execute(
+            "SELECT id, source_name, source_url, raw_html, fetched_at FROM raw_reports WHERE is_processed = FALSE"
+        )
         reports = [
-            {"id": str(row[0]), "source_name": row[1], "raw_html": row[2], "fetched_at": row[3]}
+            {
+                "id": str(row[0]),
+                "source_name": row[1],
+                "source_url": row[2],
+                "raw_html": row[3],
+                "fetched_at": row[4],
+            }
             for row in cur.fetchall()
         ]
 
@@ -207,14 +215,15 @@ def run() -> int:
                     cur.execute(
                         """
                         INSERT INTO parsed_reports
-                            (raw_report_id, water_body_id, source_name, report_date,
+                            (raw_report_id, water_body_id, source_name, source_url, report_date,
                              sentiment, species_mentioned, fly_patterns_mentioned,
                              conditions_summary, flow_commentary, water_clarity,
                              hatches, river_section, raw_extraction)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (water_body_id, source_name, report_date)
                         DO UPDATE SET
                             raw_report_id = EXCLUDED.raw_report_id,
+                            source_url = EXCLUDED.source_url,
                             sentiment = EXCLUDED.sentiment,
                             species_mentioned = EXCLUDED.species_mentioned,
                             fly_patterns_mentioned = EXCLUDED.fly_patterns_mentioned,
@@ -230,6 +239,7 @@ def run() -> int:
                             row["raw_report_id"],
                             water_body_id,
                             row["source_name"],
+                            report.get("source_url"),
                             report_date,
                             row.get("sentiment"),
                             row.get("species_mentioned", []),

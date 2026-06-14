@@ -16,6 +16,7 @@ const REPORTS_QUERY = gql`
     reports(limit: $limit, offset: $offset) {
       id
       sourceName
+      sourceUrl
       reportDate
       sentiment
       conditionsSummary
@@ -34,6 +35,7 @@ const REPORTS_QUERY = gql`
 interface ReportListItem {
   id: string
   sourceName: string
+  sourceUrl?: string | null
   reportDate?: string | null
   sentiment?: string | null
   conditionsSummary?: string | null

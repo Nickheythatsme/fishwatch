@@ -55,6 +55,7 @@ CREATE TABLE parsed_reports (
     raw_report_id UUID REFERENCES raw_reports(id) ON DELETE CASCADE,
     water_body_id UUID REFERENCES water_bodies(id),
     source_name TEXT NOT NULL,
+    source_url TEXT,                         -- Denormalized from raw_reports for linking
     report_date DATE,                        -- Date the report covers
     sentiment TEXT CHECK (sentiment IN ('excellent', 'good', 'fair', 'poor', 'off')),
     species_mentioned TEXT[] DEFAULT '{}',
