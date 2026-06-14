@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserCircle } from 'lucide-react'
@@ -24,8 +25,16 @@ export function TopBar() {
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="font-headline text-2xl italic text-primary-container"
+            className="flex items-center gap-2 font-headline text-2xl italic text-primary-container"
           >
+            <Image
+              src="/favicon-96x96.png"
+              alt=""
+              width={36}
+              height={36}
+              priority
+              className="h-9 w-9"
+            />
             Score.Fish
           </Link>
           <nav className="flex items-center gap-6">
