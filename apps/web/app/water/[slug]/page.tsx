@@ -1,8 +1,5 @@
-'use client'
-
-import { gql, useQuery } from '@apollo/client'
-import { useParams } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import { notFound } from 'next/navigation'
+import { ssrQuery } from '@/lib/graphql/execute'
 import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
@@ -12,16 +9,21 @@ import { ReportFeed } from '@/components/reports/ReportFeed'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
+// `WaterBodyMiniMap` is a Leaflet client island (it only runs in the browser).
+// The `ssr: false` dynamic import lives in this 'use client' wrapper because
+// Next.js disallows it directly in a Server Component. All other data is
+// rendered in server HTML; the map receives its data as props.
+import { WaterBodyMiniMapIsland } from '@/components/map/WaterBodyMiniMapIsland'
 
-const WaterBodyMiniMap = dynamic(
-  () => import('@/components/map/WaterBodyMiniMap').then((m) => m.WaterBodyMiniMap),
-  {
-    ssr: false,
-    loading: () => <div className="h-full w-full animate-pulse bg-surface-container-high" />,
-  }
-)
+// Revalidate server-rendered pages every 30 minutes, aligned with the scoring
+// pipeline cron so the indexed HTML stays fresh without rebuilding on request.
+export const revalidate = 1800
 
-const WATER_BODY_QUERY = gql`
+// Pre-build the in-scope Oregon waters at build time; render any other water
+// (WA/ID) on-demand the first time it's requested.
+export const dynamicParams = true
+
+const WATER_BODY_QUERY = /* GraphQL */ `
   query WaterBody($slug: String!) {
     waterBody(slug: $slug) {
       id
@@ -68,41 +70,126 @@ const WATER_BODY_QUERY = gql`
   }
 `
 
-export default function WaterBodyPage() {
-  const params = useParams()
-  const slug = params.id as string
+interface Signal {
+  compositeScore: number
+  flowScore: number | null
+  sentimentScore: number | null
+  consensusScore: number | null
+  recommendedSpecies: string[]
+  recommendedFlies: string[]
+  summary: string | null
+  scoreDate: string | null
+  topSection: string | null
+}
 
-  const { data, loading, error } = useQuery(WATER_BODY_QUERY, {
-    variables: { slug },
-  })
+interface SignalPoint {
+  scoreDate: string
+  compositeScore: number
+}
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        <BackButton className="mb-4 md:hidden" />
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 rounded-2xl bg-surface-container-high" />
-          <div className="h-48 rounded-2xl bg-surface-container-high" />
-        </div>
-      </div>
-    )
+interface Report {
+  id: string
+  sourceName: string
+  sourceUrl: string | null
+  reportDate: string | null
+  sentiment: string | null
+  conditionsSummary: string | null
+  flyPatternsMentioned: string[]
+  speciesMentioned: string[]
+  waterClarity: string | null
+}
+
+interface GaugeReading {
+  measuredAt: string
+  flowCfs: number | null
+  waterTempF: number | null
+  gaugeHeightFt: number | null
+}
+
+interface WaterBody {
+  id: string
+  name: string
+  slug: string
+  latitude: number | null
+  longitude: number | null
+  description: string | null
+  typicalSpecies: string[]
+  currentFlow: number | null
+  currentSignal: Signal | null
+  signals: SignalPoint[]
+  recentReports: Report[]
+  gaugeReadings: GaugeReading[]
+}
+
+interface WaterPageData {
+  waterBody: WaterBody | null
+}
+
+const OREGON_SLUGS_QUERY = /* GraphQL */ `
+  query OregonWaterSlugs($region: String!) {
+    waterBodies(region: $region) {
+      slug
+    }
+  }
+`
+
+interface OregonSlugsData {
+  waterBodies: { slug: string }[]
+}
+
+export async function generateStaticParams() {
+  try {
+    const data = await ssrQuery<OregonSlugsData>(OREGON_SLUGS_QUERY, {
+      region: 'oregon',
+    })
+    return data.waterBodies.map((wb) => ({ slug: wb.slug }))
+  } catch {
+    // If the data source is unreachable at build time, fall back to rendering
+    // every water on-demand (`dynamicParams = true`) instead of failing the build.
+    return []
+  }
+}
+
+export default async function WaterBodyPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+
+  // The `waterBody` resolver uses `.single()`, so PostgREST returns an error
+  // (which `ssrQuery` re-throws) when no row matches an unknown slug. Treat that
+  // throw as a 404 rather than letting it bubble up as a 500.
+  //
+  // This is the deliberately catch-all "Option 1" from issue #52: any ssrQuery
+  // failure becomes a 404. We don't narrow to the PGRST116 "no rows" code
+  // because `ssrQuery` collapses GraphQL errors to a flat message string (the
+  // PostgREST code isn't preserved). The tradeoff: if the DB is unreachable when
+  // an un-prebuilt slug is first requested, ISR could cache that 404 for up to
+  // `revalidate` seconds. The cleaner fix — switching the resolver to
+  // `.maybeSingle()` so unknown slugs return null — also changes the public HTTP
+  // GraphQL contract, so it's tracked separately rather than done here.
+  let data: WaterPageData
+  try {
+    data = await ssrQuery<WaterPageData>(WATER_BODY_QUERY, { slug })
+  } catch {
+    notFound()
   }
 
-  if (error || !data?.waterBody) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <BackButton className="mb-4 md:hidden" />
-        <p className="rounded-2xl bg-error-container/30 p-6 text-error">
-          Water body not found.
-        </p>
-      </div>
-    )
-  }
+  if (!data.waterBody) notFound()
 
   const wb = data.waterBody
   const signal = wb.currentSignal
   const noData = isNoDataSignal(signal)
   const score = signal && !noData ? signal.compositeScore : null
+
+  // graphql-js builds result objects with a null prototype (`Object.create(null)`),
+  // which React refuses to serialize across the Server→Client boundary
+  // ("Only plain objects … can be passed to Client Components"). FlowChart is the
+  // only client island here that receives objects, so spread each reading into a
+  // plain object literal before handing it over. (BackButton and the mini-map
+  // island only receive primitives, which serialize fine.)
+  const gaugeReadings = wb.gaugeReadings.map((r) => ({ ...r }))
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -123,7 +210,7 @@ export default function WaterBodyPage() {
             )}
             {wb.typicalSpecies.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                {wb.typicalSpecies.map((s: string) => (
+                {wb.typicalSpecies.map((s) => (
                   <SpeciesIcon key={s} name={s} />
                 ))}
                 <span className="font-label text-xs uppercase tracking-wider text-on-surface-variant">
@@ -143,7 +230,7 @@ export default function WaterBodyPage() {
             className="isolate overflow-hidden rounded-2xl bg-surface-container-low lg:col-start-2 lg:row-start-1"
           >
             <div className="h-44 w-full lg:h-full">
-              <WaterBodyMiniMap
+              <WaterBodyMiniMapIsland
                 latitude={wb.latitude}
                 longitude={wb.longitude}
                 name={wb.name}
@@ -157,7 +244,7 @@ export default function WaterBodyPage() {
         <section className="lg:col-start-1 lg:row-start-1">
           <h2 className="mb-3 font-headline text-lg font-bold text-on-surface">Flow Data</h2>
           <GaugeStatus flow={wb.currentFlow} />
-          <FlowChart readings={wb.gaugeReadings} />
+          <FlowChart readings={gaugeReadings} />
         </section>
 
         {signal && (
@@ -177,7 +264,7 @@ export default function WaterBodyPage() {
                   Recommended Flies
                 </h3>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {signal.recommendedFlies.map((fly: string) => (
+                  {signal.recommendedFlies.map((fly) => (
                     <Tag key={fly} variant="primary">
                       {fly}
                     </Tag>
