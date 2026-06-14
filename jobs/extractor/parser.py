@@ -56,7 +56,7 @@ def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> lis
                 "source_name": source_name,
                 "report_date": _normalize_report_date(entry.get("report_date")),
                 "sentiment": _normalize_sentiment(entry.get("sentiment")),
-                "species_mentioned": entry.get("species") or [],
+                "species_mentioned": _normalize_species(entry.get("species")),
                 "fly_patterns_mentioned": entry.get("fly_patterns") or [],
                 "conditions_summary": entry.get("conditions_summary"),
                 "flow_commentary": entry.get("flow_commentary"),
@@ -76,6 +76,27 @@ def _normalize_sentiment(value: Any) -> str | None:
         return None
     normalized = str(value).lower().strip()
     return normalized if normalized in VALID_SENTIMENTS else None
+
+
+def _normalize_species(value: Any) -> list[str]:
+    """Lowercase, trim, and de-duplicate species names.
+
+    The LLM returns species in whatever casing it finds in the report text
+    ("Trout" vs "trout"); canonicalize to lowercase so downstream consumers
+    (filters, scoring/aggregation) don't have to lowercase defensively.
+    """
+    if not value or not isinstance(value, list):
+        return []
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        normalized = item.strip().lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            result.append(normalized)
+    return result
 
 
 def _normalize_report_date(value: Any) -> str | None:

@@ -2,7 +2,7 @@
 
 import json
 
-from extractor.parser import _normalize_report_date, parse_extraction
+from extractor.parser import _normalize_report_date, _normalize_species, parse_extraction
 
 
 def test_normalize_valid_iso_date():
@@ -28,3 +28,25 @@ def test_parse_extraction_normalizes_report_date():
     rows = parse_extraction(raw, "raw-id", "test_source")
     assert rows[0]["report_date"] == "2026-05-21"
     assert rows[1]["report_date"] is None  # Invalid date dropped; caller uses scrape date
+
+
+def test_normalize_species_lowercases_dedupes_and_preserves_order():
+    assert _normalize_species(["Trout", "trout", "TROUT"]) == ["trout"]
+    assert _normalize_species([" Steelhead ", "Trout", "steelhead"]) == ["steelhead", "trout"]
+
+
+def test_normalize_species_handles_invalid_input():
+    assert _normalize_species(None) == []
+    assert _normalize_species([]) == []
+    assert _normalize_species("Trout") == []  # not a list
+    assert _normalize_species(["Trout", 123, None, ""]) == ["trout"]  # non-strings/blanks skipped
+
+
+def test_parse_extraction_normalizes_species():
+    raw = json.dumps(
+        [
+            {"water_body": "Davis Lake", "species": ["Trout", "Steelhead", "trout"]},
+        ]
+    )
+    rows = parse_extraction(raw, "raw-id", "test_source")
+    assert rows[0]["species_mentioned"] == ["trout", "steelhead"]
