@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ssrQuery } from '@/lib/graphql/execute'
+import { buildWaterMetadata } from '@/lib/seo/metadata'
 import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
@@ -148,6 +150,28 @@ export async function generateStaticParams() {
     // every water on-demand (`dynamicParams = true`) instead of failing the build.
     return []
   }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+
+  // Reuses the page's exact WATER_BODY_QUERY so the `cache()`-wrapped ssrQuery
+  // dedupes to a single execution per render. On an unknown slug the resolver
+  // throws (same as the page); return empty metadata and let the page's
+  // notFound() drive the 404 UI.
+  let data: WaterPageData
+  try {
+    data = await ssrQuery<WaterPageData>(WATER_BODY_QUERY, { slug })
+  } catch {
+    return {}
+  }
+  if (!data.waterBody) return {}
+
+  return buildWaterMetadata(data.waterBody)
 }
 
 export default async function WaterBodyPage({
