@@ -72,7 +72,7 @@ vi.mock('@/lib/graphql/context', () => ({
 }))
 
 // Imported after the mocks so they pick up the stubbed modules.
-import WaterBodyPage, { generateStaticParams } from '../page'
+import WaterBodyPage, { generateStaticParams, generateMetadata } from '../page'
 
 const waterBody: Row = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -164,5 +164,23 @@ describe('water/[slug] page', () => {
     }
     const params = await generateStaticParams()
     expect(params).toEqual([{ slug: 'lower-deschutes' }, { slug: 'metolius' }])
+  })
+
+  it('generateMetadata builds per-water title, description, and canonical', async () => {
+    const meta = await generateMetadata({
+      params: Promise.resolve({ slug: 'lower-deschutes' }),
+    })
+    expect(meta.title).toMatch(/^Lower Deschutes River Fishing Report & Conditions — /)
+    expect(meta.description).toContain('Redsides eating well on the swing.') // signal summary
+    expect(meta.alternates?.canonical).toBe('https://score.fish/water/lower-deschutes')
+    expect(meta.openGraph?.url).toBe('https://score.fish/water/lower-deschutes')
+  })
+
+  it('generateMetadata returns empty metadata for an unknown slug', async () => {
+    tables = { water_bodies: [] }
+    const meta = await generateMetadata({
+      params: Promise.resolve({ slug: 'does-not-exist' }),
+    })
+    expect(meta).toEqual({})
   })
 })

@@ -5,6 +5,7 @@ import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
 import { MobileNav } from '@/components/shell/MobileNav'
 import { NavigationHistoryProvider } from '@/components/shell/NavigationHistoryProvider'
+import { SITE_URL } from '@/lib/seo/metadata'
 import './globals.css'
 
 const newsreader = Newsreader({
@@ -27,6 +28,9 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
+  // Resolves relative Open Graph / canonical URLs (e.g. per-water OG images) to
+  // absolute production URLs.
+  metadataBase: new URL(SITE_URL),
   title: 'Score.Fish — Pacific Northwest Fishing Intelligence',
   description:
     'Real-time fishing conditions, reports, and signals for Pacific Northwest rivers and lakes.',
