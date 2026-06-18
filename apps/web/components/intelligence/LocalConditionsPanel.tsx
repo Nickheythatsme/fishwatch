@@ -1,31 +1,20 @@
 'use client'
 
-import { gql, useQuery } from '@apollo/client'
 import { Thermometer } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 
-const REGION_CONDITIONS_QUERY = gql`
-  query RegionConditions($region: String!) {
-    regionConditions(region: $region) {
-      flowTrend
-      hatchVolume
-      waterTempF
-      locationLabel
-    }
-  }
-`
+export interface RegionConditions {
+  flowTrend: string | null
+  hatchVolume: string | null
+  waterTempF: number | null
+  locationLabel: string | null
+}
 
 interface LocalConditionsPanelProps {
   region: string
-}
-
-interface RegionConditionsResponse {
-  regionConditions: {
-    flowTrend: string | null
-    hatchVolume: string | null
-    waterTempF: number | null
-    locationLabel: string | null
-  } | null
+  // Server-fetched conditions, passed in as props so this panel renders as
+  // crawlable HTML and no longer needs a client-side GraphQL round-trip.
+  conditions: RegionConditions | null
 }
 
 const TONE_BY_VALUE: Record<string, string> = {
@@ -42,13 +31,7 @@ function valueClass(value: string | null): string {
   return TONE_BY_VALUE[value] ?? 'text-primary'
 }
 
-export function LocalConditionsPanel({ region }: LocalConditionsPanelProps) {
-  const { data, loading } = useQuery<RegionConditionsResponse>(REGION_CONDITIONS_QUERY, {
-    variables: { region },
-    skip: !region,
-  })
-
-  const conditions = data?.regionConditions
+export function LocalConditionsPanel({ region, conditions }: LocalConditionsPanelProps) {
   const flow = conditions?.flowTrend ?? '—'
   const hatch = conditions?.hatchVolume ?? '—'
   const tempF = conditions?.waterTempF
@@ -66,13 +49,13 @@ export function LocalConditionsPanel({ region }: LocalConditionsPanelProps) {
         <div>
           <p className="font-label text-[10px] uppercase tracking-wider text-outline">Flow Avg</p>
           <p className={`font-headline text-xl font-bold ${valueClass(conditions?.flowTrend ?? null)}`}>
-            {loading ? '…' : flow}
+            {flow}
           </p>
         </div>
         <div>
           <p className="font-label text-[10px] uppercase tracking-wider text-outline">Hatch Vol</p>
           <p className={`font-headline text-xl font-bold ${valueClass(conditions?.hatchVolume ?? null)}`}>
-            {loading ? '…' : hatch}
+            {hatch}
           </p>
         </div>
         <div className="col-span-2 mt-1 flex items-center gap-2 border-t border-outline-variant/20 pt-3">
