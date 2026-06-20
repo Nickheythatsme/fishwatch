@@ -1,17 +1,17 @@
-'use client'
-
-import { Suspense } from 'react'
-import { gql, useQuery } from '@apollo/client'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { ssrQuery } from '@/lib/graphql/execute'
 import { ReportCard } from '@/components/reports/ReportCard'
 import {
   activeFilterCount,
   matchesReportFilters,
   parseReportFilters,
-  serializeReportFilters,
 } from '@/components/reports/filters'
 
-const REPORTS_QUERY = gql`
+// Keep the indexed report feed fresh on the same 30-minute cadence as the rest
+// of the server-rendered pages.
+export const revalidate = 1800
+
+const REPORTS_QUERY = /* GraphQL */ `
   query Reports($limit: Int, $offset: Int) {
     reports(limit: $limit, offset: $offset) {
       id
@@ -50,43 +50,38 @@ interface ReportsResponse {
   reports: ReportListItem[]
 }
 
-export default function ReportsPage() {
-  return (
-    <Suspense>
-      <ReportsContent />
-    </Suspense>
-  )
+// Next 16 hands `searchParams` to the page as a Promise of a plain map; the
+// filter helpers operate on a `URLSearchParams`, so adapt between the two.
+function toSearchParams(
+  sp: Record<string, string | string[] | undefined>
+): URLSearchParams {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(sp)) {
+    if (Array.isArray(value)) {
+      for (const v of value) params.append(key, v)
+    } else if (value != null) {
+      params.set(key, value)
+    }
+  }
+  return params
 }
 
-function ReportsContent() {
-  const { data, loading, error } = useQuery<ReportsResponse>(REPORTS_QUERY, {
-    variables: { limit: 100, offset: 0 },
-  })
-
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-
-  const filters = parseReportFilters(new URLSearchParams(searchParams.toString()))
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const sp = await searchParams
+  // Filters come from the URL so a filtered feed is crawlable and shareable;
+  // `ReportFilters` (a client island in the TopBar) is what writes them back.
+  const filters = parseReportFilters(toSearchParams(sp))
   const hasFilters = activeFilterCount(filters) > 0
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-6 h-9 w-64 animate-pulse rounded-md bg-surface-container-high" />
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="h-32 animate-pulse rounded-2xl bg-surface-container-high"
-            />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
+  let reports: ReportListItem[]
+  try {
+    const data = await ssrQuery<ReportsResponse>(REPORTS_QUERY, { limit: 100, offset: 0 })
+    reports = data.reports
+  } catch {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
         <p className="rounded-2xl bg-error-container/30 p-6 text-error">
@@ -96,16 +91,10 @@ function ReportsContent() {
     )
   }
 
-  const reports = data?.reports ?? []
+  // Source/species filtering is applied server-side so the rendered HTML already
+  // reflects the active filters. (The `reports` query only filters by a single
+  // source, so multi-select matching stays in `matchesReportFilters`.)
   const visible = reports.filter((report) => matchesReportFilters(report, filters))
-
-  function clearFilters() {
-    const qs = serializeReportFilters(new URLSearchParams(searchParams.toString()), {
-      sources: [],
-      species: [],
-    })
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -115,13 +104,12 @@ function ReportsContent() {
       ) : visible.length === 0 ? (
         <div className="font-body text-on-surface-variant">
           <p>No reports match your filters.</p>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="mt-2 font-label text-sm font-semibold text-primary hover:underline"
+          <Link
+            href="/reports"
+            className="mt-2 inline-block font-label text-sm font-semibold text-primary hover:underline"
           >
             Clear filters
-          </button>
+          </Link>
         </div>
       ) : (
         <>
