@@ -1,4 +1,5 @@
 import { Tag, type TagVariant } from '@/components/ui/Tag'
+import { formatSourceName } from '@/components/reports/source-utils'
 
 interface Report {
   id: string
@@ -25,20 +26,13 @@ const SENTIMENT_VARIANT: Record<string, TagVariant> = {
   off: 'error',
 }
 
-function formatSource(name: string): string {
-  return name
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
 export function ReportCard({ report }: { report: Report }) {
   return (
     <article className="rounded-2xl bg-surface-container-lowest p-6 transition-colors hover:bg-surface-container">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-            {formatSource(report.sourceName)}
+            {formatSourceName(report.sourceName)}
           </p>
           {report.waterBody && (
             <a
