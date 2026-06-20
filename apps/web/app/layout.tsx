@@ -34,7 +34,8 @@ export const metadata: Metadata = {
   title: 'Score.Fish — Pacific Northwest Fishing Intelligence',
   description:
     'Real-time fishing conditions, reports, and signals for Pacific Northwest rivers and lakes.',
-  manifest: '/site.webmanifest',
+  // The `<link rel="manifest">` tag is injected automatically from the
+  // `app/manifest.ts` file convention, so no explicit `manifest` field here.
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
