@@ -6,7 +6,7 @@ import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
 import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
-import { isNoDataSignal } from '@/components/signals/score-utils'
+import { isNoDataSignal, scoreToLabel } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
@@ -207,6 +207,16 @@ export default async function WaterBodyPage({
   const noData = isNoDataSignal(signal)
   const score = signal && !noData ? signal.compositeScore : null
 
+  // Plain-language "signal without the scroll" line for the hero. Prefer the
+  // LLM-written `summary`; otherwise synthesize a one-liner from the score using
+  // the shared `scoreToLabel` mapping (no duplicated label logic). When there's
+  // no usable signal, surface an honest no-data message instead of a fake score.
+  const heroSummary =
+    signal != null && !noData
+      ? (signal.summary ??
+        `Fishing is rated ${scoreToLabel(signal.compositeScore)} (${signal.compositeScore.toFixed(1)}/10) right now.`)
+      : null
+
   // graphql-js builds result objects with a null prototype (`Object.create(null)`),
   // which React refuses to serialize across the Server→Client boundary
   // ("Only plain objects … can be passed to Client Components"). FlowChart is the
@@ -227,6 +237,17 @@ export default async function WaterBodyPage({
               </p>
             )}
             <h1 className="mt-1 font-headline text-4xl italic text-primary">{wb.name}</h1>
+            {heroSummary && (
+              <p className="mt-3 max-w-prose font-body text-base leading-relaxed text-on-surface">
+                {heroSummary}
+              </p>
+            )}
+            {!heroSummary && (
+              <p className="mt-3 max-w-prose font-body text-base leading-relaxed text-on-surface-variant">
+                No current fishing signal — we don&apos;t have enough recent reports or flow data to
+                score this water yet.
+              </p>
+            )}
             {wb.description && (
               <p className="mt-3 max-w-prose font-body text-on-surface-variant">
                 {wb.description}
@@ -277,11 +298,6 @@ export default async function WaterBodyPage({
               Signal Breakdown
             </h2>
             <ScoreBreakdown signal={signal} noData={noData} />
-            {!noData && signal.summary && (
-              <p className="mt-3 font-body text-sm text-on-surface-variant">
-                {signal.summary}
-              </p>
-            )}
             {!noData && signal.recommendedFlies.length > 0 && (
               <div className="mt-4">
                 <h3 className="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">
