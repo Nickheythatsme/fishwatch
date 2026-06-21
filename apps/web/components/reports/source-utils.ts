@@ -64,5 +64,5 @@ export function deriveSourceCredits(reports: readonly CreditableReport[]): Sourc
       url: shopHomepageFromUrl(report.sourceUrl),
     })
   }
-  return [...seen.values()]
+  return Array.from(seen.values())
 }
