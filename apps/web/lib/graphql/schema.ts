@@ -75,7 +75,7 @@ export const typeDefs = /* GraphQL */ `
     hatchVolume: String
     """Latest non-null water temperature reading across region gauges, last 24h."""
     waterTempF: Float
-    """Human-readable location label (e.g. Central Oregon)."""
+    """Human-readable location label (e.g. Pacific Northwest)."""
     locationLabel: String
   }
 

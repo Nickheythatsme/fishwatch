@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Score.Fish — a fishing conditions intelligence app for Central Oregon. Scrapes fly shop reports, combines with USGS gauge data, and produces composite fishing signals. Monorepo with a Next.js frontend/API and Python data pipeline.
+Score.Fish — a fishing conditions intelligence app for the Pacific Northwest. Scrapes fly shop reports, combines with USGS gauge data, and produces composite fishing signals. Monorepo with a Next.js frontend/API and Python data pipeline.
 
 ## Architecture
 
