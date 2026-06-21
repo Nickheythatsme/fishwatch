@@ -6,6 +6,8 @@ export interface WaterBody {
   latitude: number
   longitude: number
   description: string | null
+  author: string | null
+  editorial_notes: string | null
   usgs_station_ids: string[]
   typical_species: string[]
   created_at: string

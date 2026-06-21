@@ -29,6 +29,13 @@ export const typeDefs = /* GraphQL */ `
     latitude: Float!
     longitude: Float!
     description: String
+
+    """Byline of the human who wrote the local notes"""
+    author: String
+
+    """Human-written first-hand local notes"""
+    editorialNotes: String
+
     typicalSpecies: [String!]!
 
     """Most recent signal score"""

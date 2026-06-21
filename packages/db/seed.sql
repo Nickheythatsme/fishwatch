@@ -37,6 +37,13 @@ INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_
 ('Big Lost River', 'big-lost-river', 'idaho', 43.9392, -113.6483, ARRAY['13127000'], ARRAY['rainbow trout', 'brown trout', 'whitefish'], 'Cold tailwater below Mackay Reservoir. Large rainbows. Best late June through September.'),
 ('South Fork Boise River', 'sf-boise-river', 'idaho', 43.4958, -115.3081, ARRAY['13186000'], ARRAY['rainbow trout', 'bull trout', 'whitefish'], 'Mountain tailwater with trophy potential. Barbless-only above Neal Bridge.');
 
+-- First-hand editorial notes (E-E-A-T). Reference example for one water; other
+-- waters stay null and render no Local Notes section until a human adds them.
+UPDATE water_bodies
+SET author = 'Nick Grout',
+    editorial_notes = 'The canyon below Trout Creek fishes noticeably better in the afternoon this time of year — wait for the sun to warm the water and the redsides start looking up. Park at Trout Creek and walk downstream a mile past the crowds; the riffle corners hold the best dry-dropper water.'
+WHERE slug = 'lower-deschutes';
+
 INSERT INTO species (name, common_aliases) VALUES
 ('rainbow trout', ARRAY['rainbow', 'bows', 'redsides', 'redside', 'bow', 'deschutes redside']),
 ('brown trout', ARRAY['brown', 'browns', 'brownie']),
