@@ -13,6 +13,8 @@ import { HatchTable, type Hatch } from '@/components/reports/HatchTable'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
+import { Breadcrumbs, type Crumb } from '@/components/shell/Breadcrumbs'
+import { RelatedWaters, type RelatedWater } from '@/components/water/RelatedWaters'
 // `WaterBodyMiniMap` is a Leaflet client island (it only runs in the browser).
 // The `ssr: false` dynamic import lives in this 'use client' wrapper because
 // Next.js disallows it directly in a Server Component. All other data is
@@ -33,6 +35,7 @@ const WATER_BODY_QUERY = /* GraphQL */ `
       id
       name
       slug
+      region
       latitude
       longitude
       description
@@ -122,6 +125,7 @@ interface WaterBody {
   id: string
   name: string
   slug: string
+  region: string
   latitude: number | null
   longitude: number | null
   description: string | null
@@ -149,6 +153,39 @@ const OREGON_SLUGS_QUERY = /* GraphQL */ `
 
 interface OregonSlugsData {
   waterBodies: { slug: string }[]
+}
+
+// Interim "related waters" source: other waters in the same `region`. The
+// `waterBodies(region:)` field returns slug + name, which is all the
+// RelatedWaters links need. Switch this to `basin_id` once Epic 4 (#65) adds the
+// column — tracked in #67.
+const RELATED_WATERS_QUERY = /* GraphQL */ `
+  query RelatedWaters($region: String!) {
+    waterBodies(region: $region) {
+      slug
+      name
+    }
+  }
+`
+
+interface RelatedWatersData {
+  waterBodies: { slug: string; name: string }[]
+}
+
+// Max sibling waters to surface, to keep the link block scannable on mobile.
+const MAX_RELATED_WATERS = 6
+
+async function fetchRelatedWaters(region: string, currentSlug: string): Promise<RelatedWater[]> {
+  try {
+    const data = await ssrQuery<RelatedWatersData>(RELATED_WATERS_QUERY, { region })
+    return (data.waterBodies ?? [])
+      .filter((w) => w.slug !== currentSlug)
+      .slice(0, MAX_RELATED_WATERS)
+  } catch {
+    // Related waters are a non-critical enhancement; never fail the page if the
+    // sibling query errors. Render nothing instead.
+    return []
+  }
 }
 
 export async function generateStaticParams() {
@@ -246,9 +283,22 @@ export default async function WaterBodyPage({
   // island only receive primitives, which serialize fine.)
   const gaugeReadings = wb.gaugeReadings.map((r) => ({ ...r }))
 
+  // Sibling waters for the internal-linking block (excludes the current water).
+  const relatedWaters = await fetchRelatedWaters(wb.region, wb.slug)
+
+  // Breadcrumb trail: Home → Water. A basin level slots in between Home and the
+  // water once Epic 4 (#67) ships basin hubs — insert a `{ label, href: '/basin/...' }`
+  // crumb here at that point; Breadcrumbs renders any ordered list as-is.
+  const breadcrumbs: Crumb[] = [
+    { label: 'Home', href: '/' },
+    // Basin crumb goes here — wired in Epic 4 (#67).
+    { label: wb.name },
+  ]
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <BackButton className="mb-4 md:hidden" />
+      <Breadcrumbs items={breadcrumbs} className="mb-4" />
       <section className="rounded-2xl bg-surface-container-low p-6 sm:p-8">
         <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -377,6 +427,10 @@ export default async function WaterBodyPage({
             <SourceAttribution reports={wb.recentReports} />
           </section>
         </div>
+      </div>
+
+      <div className="mt-10">
+        <RelatedWaters waters={relatedWaters} region={wb.region} />
       </div>
     </div>
   )
