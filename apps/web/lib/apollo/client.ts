@@ -12,7 +12,7 @@ function makeClient() {
   })
 }
 
-let client: ApolloClient<unknown> | undefined
+let client: ApolloClient | undefined
 
 export function getClient() {
   if (typeof window === 'undefined') {
