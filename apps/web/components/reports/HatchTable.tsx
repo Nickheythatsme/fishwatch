@@ -28,7 +28,7 @@ function dedupeHatches(reports: HatchSource[]): Hatch[] {
       }
     }
   }
-  return [...byName.values()]
+  return Array.from(byName.values())
 }
 
 export function HatchTable({ reports }: { reports: HatchSource[] }) {
