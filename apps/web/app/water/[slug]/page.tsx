@@ -6,8 +6,9 @@ import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
 import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
-import { isNoDataSignal, scoreToLabel } from '@/components/signals/score-utils'
+import { isNoDataSignal, relativeTime, scoreToLabel } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
+import { HatchTable, type Hatch } from '@/components/reports/HatchTable'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
@@ -61,6 +62,11 @@ const WATER_BODY_QUERY = /* GraphQL */ `
         flyPatternsMentioned
         speciesMentioned
         waterClarity
+        hatches {
+          name
+          stage
+          timing
+        }
       }
       gaugeReadings(hours: 48) {
         measuredAt
@@ -99,6 +105,7 @@ interface Report {
   flyPatternsMentioned: string[]
   speciesMentioned: string[]
   waterClarity: string | null
+  hatches: Hatch[]
 }
 
 interface GaugeReading {
@@ -217,6 +224,15 @@ export default async function WaterBodyPage({
         `Fishing is rated ${scoreToLabel(signal.compositeScore)} (${signal.compositeScore.toFixed(1)}/10) right now.`)
       : null
 
+  // Freshness stamp: the most recent of the score date and the latest report
+  // date. Both are `YYYY-MM-DD` strings, so a lexicographic max is also the
+  // chronological max. `recentReports` arrives most-recent-first.
+  const latestReportDate = wb.recentReports[0]?.reportDate ?? null
+  const lastUpdated = [signal?.scoreDate ?? null, latestReportDate]
+    .filter((d): d is string => d != null)
+    .sort()
+    .at(-1)
+
   // graphql-js builds result objects with a null prototype (`Object.create(null)`),
   // which React refuses to serialize across the Server→Client boundary
   // ("Only plain objects … can be passed to Client Components"). FlowChart is the
@@ -237,6 +253,14 @@ export default async function WaterBodyPage({
               </p>
             )}
             <h1 className="mt-1 font-headline text-4xl italic text-primary">{wb.name}</h1>
+            {lastUpdated && (
+              <p className="mt-2 font-label text-xs text-on-surface-variant">
+                Last updated{' '}
+                <time dateTime={lastUpdated} className="font-semibold">
+                  {relativeTime(lastUpdated)}
+                </time>
+              </p>
+            )}
             {heroSummary && (
               <p className="mt-3 max-w-prose font-body text-base leading-relaxed text-on-surface">
                 {heroSummary}
@@ -315,10 +339,14 @@ export default async function WaterBodyPage({
           </section>
         )}
 
-        <section className="lg:col-start-1 lg:row-start-2">
-          <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
-          <ReportFeed reports={wb.recentReports} />
-        </section>
+        <div className="space-y-6 lg:col-start-1 lg:row-start-2">
+          <HatchTable reports={wb.recentReports} />
+
+          <section>
+            <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
+            <ReportFeed reports={wb.recentReports} />
+          </section>
+        </div>
       </div>
     </div>
   )
