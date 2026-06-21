@@ -16,7 +16,7 @@ interface HatchSource {
 // Reports arrive most-recent-first (the `recentReports` resolver orders by
 // `report_date` descending), so the first time we see an insect name we keep
 // that report's stage/timing — i.e. the freshest observation wins.
-function dedupeHatches(reports: HatchSource[]): Hatch[] {
+export function dedupeHatches(reports: HatchSource[]): Hatch[] {
   const byName = new Map<string, Hatch>()
   for (const report of reports) {
     for (const hatch of report.hatches) {
