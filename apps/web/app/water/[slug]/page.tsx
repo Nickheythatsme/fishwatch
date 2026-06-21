@@ -15,6 +15,7 @@ import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
 import { Breadcrumbs, type Crumb } from '@/components/shell/Breadcrumbs'
 import { RelatedWaters, type RelatedWater } from '@/components/water/RelatedWaters'
+import { FreshnessBadge } from '@/components/water/FreshnessBadge'
 // `WaterBodyMiniMap` is a Leaflet client island (it only runs in the browser).
 // The `ssr: false` dynamic import lives in this 'use client' wrapper because
 // Next.js disallows it directly in a Server Component. All other data is
@@ -316,6 +317,12 @@ export default async function WaterBodyPage({
                 </time>
               </p>
             )}
+            <FreshnessBadge
+              reports={wb.recentReports}
+              gaugeReadings={wb.gaugeReadings}
+              scoreDate={signal?.scoreDate ?? null}
+              className="mt-3"
+            />
             {heroSummary && (
               <p className="mt-3 max-w-prose font-body text-base leading-relaxed text-on-surface">
                 {heroSummary}
