@@ -13,6 +13,8 @@ CREATE TABLE water_bodies (
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
     description TEXT,
+    author TEXT,                            -- Byline of the human who wrote the local notes
+    editorial_notes TEXT,                   -- Human-written first-hand local notes
     usgs_station_ids TEXT[] DEFAULT '{}',   -- Array of USGS station IDs
     typical_species TEXT[] DEFAULT '{}',    -- e.g. {"rainbow trout", "brown trout"}
     created_at TIMESTAMPTZ DEFAULT NOW()

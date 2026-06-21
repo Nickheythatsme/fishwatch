@@ -36,6 +36,8 @@ const WATER_BODY_QUERY = /* GraphQL */ `
       latitude
       longitude
       description
+      author
+      editorialNotes
       typicalSpecies
       currentFlow
       currentSignal {
@@ -123,6 +125,8 @@ interface WaterBody {
   latitude: number | null
   longitude: number | null
   description: string | null
+  author: string | null
+  editorialNotes: string | null
   typicalSpecies: string[]
   currentFlow: number | null
   currentSignal: Signal | null
@@ -341,6 +345,30 @@ export default async function WaterBodyPage({
         )}
 
         <div className="space-y-6 lg:col-start-1 lg:row-start-2">
+          {(wb.editorialNotes || wb.author) && (
+            <section
+              aria-labelledby="local-notes-heading"
+              className="rounded-2xl bg-surface-container-low p-5 sm:p-6"
+            >
+              <h2
+                id="local-notes-heading"
+                className="font-headline text-lg font-bold text-on-surface"
+              >
+                Local Notes
+              </h2>
+              {wb.author && (
+                <p className="mt-1 font-label text-xs uppercase tracking-wider text-on-surface-variant">
+                  From our team · {wb.author}
+                </p>
+              )}
+              {wb.editorialNotes && (
+                <p className="mt-3 max-w-prose whitespace-pre-line font-body text-base leading-relaxed text-on-surface">
+                  {wb.editorialNotes}
+                </p>
+              )}
+            </section>
+          )}
+
           <HatchTable reports={wb.recentReports} />
 
           <section>
