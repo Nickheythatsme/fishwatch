@@ -8,6 +8,7 @@ import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
 import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
 import { isNoDataSignal, relativeTime, scoreToLabel } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
+import { SourceAttribution } from '@/components/reports/SourceAttribution'
 import { HatchTable, type Hatch } from '@/components/reports/HatchTable'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
@@ -345,6 +346,7 @@ export default async function WaterBodyPage({
           <section>
             <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Recent Reports</h2>
             <ReportFeed reports={wb.recentReports} />
+            <SourceAttribution reports={wb.recentReports} />
           </section>
         </div>
       </div>

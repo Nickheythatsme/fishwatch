@@ -10,6 +10,7 @@ import {
   serializeReportFilters,
   type ReportFilters,
 } from './filters'
+import { formatSourceName } from '@/components/reports/source-utils'
 
 const REPORTS_PATH = '/reports'
 
@@ -30,13 +31,6 @@ interface OptionsResponse {
 interface FilterOption {
   value: string
   label: string
-}
-
-function formatSource(name: string): string {
-  return name
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
 }
 
 function formatSpecies(name: string): string {
@@ -101,7 +95,7 @@ export function ReportFilters() {
         .sort((a, b) => a.localeCompare(b))
         .map((value) => ({ value, label: label(value) }))
     return {
-      sourceOptions: toSorted(sources, formatSource),
+      sourceOptions: toSorted(sources, formatSourceName),
       speciesOptions: toSorted(species, formatSpecies),
     }
   }, [data])
