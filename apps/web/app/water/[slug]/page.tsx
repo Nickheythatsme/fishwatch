@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ssrQuery } from '@/lib/graphql/execute'
-import { buildWaterMetadata } from '@/lib/seo/metadata'
+import { buildWaterMetadata, SITE_URL } from '@/lib/seo/metadata'
+import { buildWaterPageGraph } from '@/lib/seo/jsonld'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
 import { SpeciesIcon } from '@/components/ui/SpeciesIcon'
@@ -9,7 +11,8 @@ import { ScoreBreakdown } from '@/components/signals/ScoreBreakdown'
 import { isNoDataSignal, relativeTime, scoreToLabel } from '@/components/signals/score-utils'
 import { ReportFeed } from '@/components/reports/ReportFeed'
 import { SourceAttribution } from '@/components/reports/SourceAttribution'
-import { HatchTable, type Hatch } from '@/components/reports/HatchTable'
+import { HatchTable, dedupeHatches, type Hatch } from '@/components/reports/HatchTable'
+import { deriveSourceCredits } from '@/components/reports/source-utils'
 import { GaugeStatus } from '@/components/gauges/GaugeStatus'
 import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
@@ -295,8 +298,30 @@ export default async function WaterBodyPage({
     { label: wb.name },
   ]
 
+  // Structured data (JSON-LD), built from the SAME variables rendered above so
+  // the markup can never drift from the visible page. Every node is guarded on
+  // its backing data inside the builders, so missing data (no signal, no author,
+  // no hatches, no gauge readings) simply omits that node. See issue #62.
+  const jsonLd = buildWaterPageGraph({
+    water: {
+      name: wb.name,
+      slug: wb.slug,
+      author: wb.author,
+      editorialNotes: wb.editorialNotes,
+    },
+    crumbs: breadcrumbs,
+    // Only a real (non-no-data) signal feeds the FAQ / score / recommended flies.
+    signal: signal && !noData ? signal : null,
+    hatches: dedupeHatches(wb.recentReports),
+    gaugeReadings: wb.gaugeReadings,
+    sourceCredits: deriveSourceCredits(wb.recentReports),
+    lastUpdated: lastUpdated ?? null,
+    siteUrl: SITE_URL,
+  })
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      {jsonLd && <JsonLd data={jsonLd} />}
       <BackButton className="mb-4 md:hidden" />
       <Breadcrumbs items={breadcrumbs} className="mb-4" />
       <section className="rounded-2xl bg-surface-container-low p-6 sm:p-8">
