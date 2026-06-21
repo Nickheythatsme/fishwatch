@@ -130,5 +130,8 @@ export const waterBodyResolvers = {
     },
 
     typicalSpecies: (parent: { typical_species?: string[] }) => parent.typical_species ?? [],
+
+    editorialNotes: (parent: { editorial_notes?: string | null }) =>
+      parent.editorial_notes ?? null,
   },
 }
