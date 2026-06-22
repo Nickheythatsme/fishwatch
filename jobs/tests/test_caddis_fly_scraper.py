@@ -3,7 +3,7 @@
 import asyncio
 from unittest.mock import AsyncMock
 
-from scraper.sources.caddis_fly import CaddisFlyScraper
+from scraper.sources.caddis_fly import _INDEX_LINK_SELECTOR, CaddisFlyScraper
 
 
 def test_caddis_fly_waits_for_attached_index_links():
@@ -37,7 +37,7 @@ def test_caddis_fly_discovers_links_from_multiple_title_patterns_and_filters_tra
     links = asyncio.run(scraper.discover_posts(page))
 
     page.eval_on_selector_all.assert_awaited_once_with(
-        scraper.index_ready_selector,
+        _INDEX_LINK_SELECTOR,
         "els => els.map(el => el.href)",
     )
     assert links == [
