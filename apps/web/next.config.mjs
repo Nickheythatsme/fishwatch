@@ -3,8 +3,10 @@
 const isDev = process.env.NODE_ENV !== 'production'
 
 // Content Security Policy. Tiles load from Mapbox + OpenStreetMap; data/auth
-// from Supabase. Next.js injects inline bootstrap scripts, so 'unsafe-inline'
-// is required for script-src; dev additionally needs 'unsafe-eval' for HMR.
+// from Supabase. Google Analytics (gtag.js) loads from googletagmanager.com and
+// beacons to google-analytics.com. Next.js injects inline bootstrap scripts, so
+// 'unsafe-inline' is required for script-src; dev additionally needs
+// 'unsafe-eval' for HMR.
 const csp = [
   `default-src 'self'`,
   `base-uri 'self'`,
@@ -12,8 +14,8 @@ const csp = [
   `frame-ancestors 'none'`,
   `object-src 'none'`,
   `img-src 'self' data: blob: https://api.mapbox.com https://*.tile.openstreetmap.org`,
-  `connect-src 'self' https://*.supabase.co https://api.mapbox.com`,
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.google-analytics.com https://*.analytics.google.com`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ''}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
   `worker-src 'self' blob:`,
