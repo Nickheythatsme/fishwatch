@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { buildWaterMetadata, SITE_URL } from '@/lib/seo/metadata'
 import { buildWaterPageGraph } from '@/lib/seo/jsonld'
+import { buildCitableLede } from '@/lib/seo/citableLede'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { ScoreRing } from '@/components/ui/ScoreRing'
 import { Tag } from '@/components/ui/Tag'
@@ -299,6 +300,24 @@ export default async function WaterBodyPage({
     { label: wb.name },
   ]
 
+  // Extract these once so both the citable lede and JSON-LD builders share the
+  // same computed values (no double work, no drift between the two).
+  const hatches = dedupeHatches(wb.recentReports)
+  const sourceCredits = deriveSourceCredits(wb.recentReports)
+
+  // Citable lede: a self-contained sentence for AI crawlers and answer engines
+  // so the page can be excerpted without losing context (water name, date,
+  // verdict, key facts). Rendered as server HTML near the top of the page.
+  // Returns null when there is no usable signal — page gracefully omits it.
+  const citableLede = buildCitableLede({
+    waterName: wb.name,
+    asOfDate: signal?.scoreDate ?? lastUpdated,
+    score,
+    flowCfs: wb.currentFlow,
+    headlineHatch: hatches[0]?.name ?? null,
+    sourceCount: sourceCredits.length,
+  })
+
   // Structured data (JSON-LD), built from the SAME variables rendered above so
   // the markup can never drift from the visible page. Every node is guarded on
   // its backing data inside the builders, so missing data (no signal, no author,
@@ -313,11 +332,12 @@ export default async function WaterBodyPage({
     crumbs: breadcrumbs,
     // Only a real (non-no-data) signal feeds the FAQ / score / recommended flies.
     signal: signal && !noData ? signal : null,
-    hatches: dedupeHatches(wb.recentReports),
+    hatches,
     gaugeReadings: wb.gaugeReadings,
-    sourceCredits: deriveSourceCredits(wb.recentReports),
+    sourceCredits,
     lastUpdated: lastUpdated ?? null,
     siteUrl: SITE_URL,
+    ledeId: citableLede ? 'citable-lede' : null,
   })
 
   return (
@@ -334,6 +354,14 @@ export default async function WaterBodyPage({
               </p>
             )}
             <h1 className="mt-1 font-headline text-4xl italic text-primary">{wb.name}</h1>
+            {citableLede && (
+              <p
+                id="citable-lede"
+                className="mt-2 font-body text-sm leading-relaxed text-on-surface-variant"
+              >
+                {citableLede}
+              </p>
+            )}
             {lastUpdated && (
               <p className="mt-2 font-label text-xs text-on-surface-variant">
                 Last updated{' '}
