@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Manrope, Newsreader } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
 import { MobileNav } from '@/components/shell/MobileNav'
@@ -54,6 +55,10 @@ export const viewport: Viewport = {
   themeColor: '#0f426f',
 }
 
+// Google Analytics 4 measurement ID (e.g. G-XXXXXXXX). Only emits the GA tag
+// when set, so local dev / preview builds without the env var stay untracked.
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+
 export default function RootLayout({
   children,
 }: {
@@ -72,6 +77,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
       </body>
+      {gaMeasurementId ? <GoogleAnalytics gaId={gaMeasurementId} /> : null}
     </html>
   )
 }
