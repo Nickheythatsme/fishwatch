@@ -61,7 +61,7 @@ export function pickRegion(waterBodies: DashboardWaterBody[]): string {
   waterBodies.forEach((wb) => {
     counts.set(wb.region, (counts.get(wb.region) ?? 0) + 1)
   })
-  let best = 'Central Oregon'
+  let best = 'Pacific Northwest'
   let bestCount = 0
   counts.forEach((count, region) => {
     if (count > bestCount) {
