@@ -73,8 +73,10 @@ export const typeDefs = /* GraphQL */ `
     flowTrend: String
     """Volume bucket for hatch mentions in regional reports over the last 7d. One of: Light, Moderate, Heavy."""
     hatchVolume: String
-    """Latest non-null water temperature reading across region gauges, last 24h."""
-    waterTempF: Float
+    """Current air temperature (°F) for the region centroid, from Open-Meteo."""
+    airTempF: Float
+    """Short current-weather label for the region (e.g. "Partly cloudy"), from Open-Meteo."""
+    weatherLabel: String
     """Human-readable location label (e.g. Pacific Northwest)."""
     locationLabel: String
   }
