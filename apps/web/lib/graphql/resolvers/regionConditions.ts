@@ -60,8 +60,13 @@ async function fetchCurrentWeather(
       `&longitude=${lon.toFixed(4)}` +
       `&current=temperature_2m,weather_code&temperature_unit=fahrenheit`
     // Cache for 30 min to align with the homepage's revalidate window and to
-    // stay well within Open-Meteo's free usage limits.
-    const res = await fetch(url, { next: { revalidate: 1800 } })
+    // stay well within Open-Meteo's free usage limits. The 3s timeout ensures a
+    // slow/hanging upstream can't block the awaited homepage SSR render — the
+    // resulting AbortError falls through to the graceful null return below.
+    const res = await fetch(url, {
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(3000),
+    })
     if (!res.ok) return { airTempF: null, weatherLabel: null }
     const json = (await res.json()) as {
       current?: { temperature_2m?: number; weather_code?: number }
