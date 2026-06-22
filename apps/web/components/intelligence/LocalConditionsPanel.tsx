@@ -6,7 +6,8 @@ import { GlassPanel } from '@/components/ui/GlassPanel'
 export interface RegionConditions {
   flowTrend: string | null
   hatchVolume: string | null
-  waterTempF: number | null
+  airTempF: number | null
+  weatherLabel: string | null
   locationLabel: string | null
 }
 
@@ -34,7 +35,8 @@ function valueClass(value: string | null): string {
 export function LocalConditionsPanel({ region, conditions }: LocalConditionsPanelProps) {
   const flow = conditions?.flowTrend ?? '—'
   const hatch = conditions?.hatchVolume ?? '—'
-  const tempF = conditions?.waterTempF
+  const airTempF = conditions?.airTempF
+  const weatherLabel = conditions?.weatherLabel
   const location = conditions?.locationLabel ?? region
 
   return (
@@ -61,7 +63,9 @@ export function LocalConditionsPanel({ region, conditions }: LocalConditionsPane
         <div className="col-span-2 mt-1 flex items-center gap-2 border-t border-outline-variant/20 pt-3">
           <Thermometer className="h-4 w-4 text-tertiary" />
           <span className="font-body text-sm font-semibold text-on-surface">
-            {tempF != null ? `${Math.round(tempF)}°F Water Temp` : 'Water temp unavailable'}
+            {airTempF != null
+              ? `${Math.round(airTempF)}°F Air${weatherLabel ? ` · ${weatherLabel}` : ''}`
+              : 'Weather unavailable'}
           </span>
         </div>
       </div>

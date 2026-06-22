@@ -41,7 +41,8 @@ const REGION_CONDITIONS_QUERY = /* GraphQL */ `
     regionConditions(region: $region) {
       flowTrend
       hatchVolume
-      waterTempF
+      airTempF
+      weatherLabel
       locationLabel
     }
   }
