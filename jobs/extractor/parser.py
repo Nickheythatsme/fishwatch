@@ -31,17 +31,31 @@ def _strip_code_fences(text: str) -> str:
 def parse_extraction(raw_json: str, raw_report_id: str, source_name: str) -> list[dict]:
     """Parse Claude's JSON response into parsed_report rows."""
     raw_json = _strip_code_fences(raw_json)
+
+    # Claude sometimes returns prose instead of [] when no water bodies match.
+    # Treat non-JSON responses as empty extraction rather than hard failures.
+    if not raw_json.lstrip().startswith(("[", "{")):
+        logger.info(f"Non-JSON response (likely no matching water bodies): {raw_json[:200]}")
+        return []
+
     try:
-        entries = json.loads(raw_json)
+        # Use raw_decode (not json.loads) so a VALID leading JSON value followed by
+        # trailing content does not blow up with "Extra data". Claude occasionally
+        # appends a prose line after the closing ] (the observed failure mode), e.g.
+        #   [ ... ]\n\nNote: only one water body was mentioned.
+        # raw_decode parses the FIRST JSON value and returns where it stopped; we
+        # take that value and ignore the tail. If the tail were actually more array
+        # elements (rare and not observed), we deliberately prefer the correctness of
+        # the leading value rather than silently merging ambiguous concatenated data.
+        entries, end_idx = json.JSONDecoder().raw_decode(raw_json.lstrip())
     except json.JSONDecodeError as e:
-        # Claude sometimes returns prose instead of [] when no water bodies match.
-        # Treat non-JSON responses as empty extraction rather than hard failures.
-        if not raw_json.lstrip().startswith(("[", "{")):
-            logger.info(f"Non-JSON response (likely no matching water bodies): {raw_json[:200]}")
-            return []
         logger.error(f"Failed to parse JSON from Claude: {e}")
         logger.debug(f"Raw JSON: {raw_json[:500]}")
         raise ExtractionParseError(str(e)) from e
+
+    tail = raw_json.lstrip()[end_idx:].strip()
+    if tail:
+        logger.info(f"Ignoring trailing data after JSON value ({len(tail)} chars): {tail[:200]}")
 
     if not isinstance(entries, list):
         entries = [entries]

@@ -80,6 +80,25 @@ def extract_text_from_html(html: str, source_name: str) -> str:
     return soup.get_text(separator="\n", strip=True)
 
 
+def _should_fail(total_extracted: int, failures: int, reports_count: int, fatal: bool) -> bool:
+    """Decide whether the extract job should exit non-zero.
+
+    The job must exit non-zero ONLY for fatal/systemic problems so that a minority
+    of per-report parse failures does not block the downstream `score` job:
+
+    - fatal=True (e.g. DB unreachable, unexpected top-level exception) -> fail.
+    - There were reports to process, yet ZERO were successfully extracted while at
+      least one failed (total wipeout) -> fail.
+    - Otherwise (some reports extracted, or nothing to process) -> exit 0 so `score`
+      still runs on fresh data, even if a few individual reports failed to parse.
+    """
+    if fatal:
+        return True
+    if reports_count > 0 and total_extracted == 0 and failures > 0:
+        return True
+    return False
+
+
 def run() -> int:
     conn = get_connection()
     cur = conn.cursor()
@@ -277,11 +296,15 @@ def run() -> int:
 
         logger.info(f"Extraction complete. {total_extracted} parsed reports created.")
 
-        return failures
+        # Per-report failures are soft: only fail the job if NOTHING was extracted
+        # despite failures (total wipeout). Otherwise exit 0 so `score` runs on the
+        # fresh rows we did create.
+        return 1 if _should_fail(total_extracted, failures, len(reports), fatal=False) else 0
 
     except Exception:
         logger.exception("Fatal error in extraction job")
         conn.rollback()
+        # Systemic failure (e.g. DB unreachable) -> exit non-zero.
         return 1
     finally:
         cur.close()
@@ -289,4 +312,6 @@ def run() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(1 if run() else 0)
+    # run() already returns the exit code (0 = success or soft per-report failures,
+    # 1 = fatal/systemic failure or total extraction wipeout).
+    sys.exit(run())
