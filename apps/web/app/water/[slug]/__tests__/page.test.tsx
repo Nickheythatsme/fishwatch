@@ -142,6 +142,12 @@ describe('water/[slug] page', () => {
     expect(html).toContain('cfs')
     expect(html).toContain('Salmonflies are popping near Maupin.') // report text
 
+    // Freshness/confidence badge: one report source backs this signal, and the
+    // tier label is rendered. (The exact tier depends on data age, but any
+    // dated water with reports + gauge resolves to a "… confidence" tier.)
+    expect(html).toContain('1 source')
+    expect(html).toMatch(/confidence/i)
+
     // Gauge readings handed to the FlowChart client island must be plain objects.
     // graphql-js returns null-prototype objects, which would crash the Next.js
     // build's Server→Client serialization, so the page re-wraps them.
