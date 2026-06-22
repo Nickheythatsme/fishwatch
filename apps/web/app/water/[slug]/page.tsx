@@ -275,10 +275,11 @@ export default async function WaterBodyPage({
   // date. Both are `YYYY-MM-DD` strings, so a lexicographic max is also the
   // chronological max. `recentReports` arrives most-recent-first.
   const latestReportDate = wb.recentReports[0]?.reportDate ?? null
-  const lastUpdated = [signal?.scoreDate ?? null, latestReportDate]
-    .filter((d): d is string => d != null)
-    .sort()
-    .at(-1)
+  const lastUpdated =
+    [signal?.scoreDate ?? null, latestReportDate]
+      .filter((d): d is string => d != null)
+      .sort()
+      .at(-1) ?? null
 
   // graphql-js builds result objects with a null prototype (`Object.create(null)`),
   // which React refuses to serialize across the Server→Client boundary
