@@ -5,6 +5,7 @@ from .base import BaseScraper
 # Travel/out-of-scope keywords in post URLs to skip
 _SKIP_KEYWORDS = ["christmas-island", "alaska", "jungle", "belize", "bahamas", "mexico", "patagonia", "chile"]
 _INDEX_LINK_SELECTOR = 'h2.entry-title a, .entry-title a[rel="bookmark"], .post-title a'
+_INDEX_READY_SELECTOR = "#content, #main, body"
 
 
 class CaddisFlyScraper(BaseScraper):
@@ -15,9 +16,10 @@ class CaddisFlyScraper(BaseScraper):
     Content in .entry-content.
     """
 
-    # Site uses div.hentry > h2.entry-title (no <article> tags). Waiting for the
-    # entry-title link guards against the runner reading the page before posts render.
-    index_ready_selector = _INDEX_LINK_SELECTOR
+    # Wait for stable WordPress container markup before discovering report links.
+    # This avoids brittle failures when title-link selectors intermittently fail to
+    # attach even though the page has loaded.
+    index_ready_selector = _INDEX_READY_SELECTOR
     index_ready_state = "attached"
 
     def __init__(self):
