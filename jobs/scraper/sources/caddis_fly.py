@@ -34,9 +34,9 @@ class CaddisFlyScraper(BaseScraper):
         async with httpx.AsyncClient() as client:
             resp = await client.get(_RSS_URL, timeout=30)
             resp.raise_for_status()
-        root = ET.fromstring(resp.text)
-        links = [item.findtext("link") or "" for item in root.iter("item")]
-        return [l for l in dict.fromkeys(links) if l and not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
+            root = ET.fromstring(resp.text)
+        links = [link for item in root.iter("item") if (link := item.findtext("link"))]
+        return [l for l in dict.fromkeys(links) if not any(kw in l.lower() for kw in _SKIP_KEYWORDS)]
 
     async def extract_content(self, page: Page) -> str:
         text, self._body_fallback_used = await self._query_content(page, ".entry-content")
