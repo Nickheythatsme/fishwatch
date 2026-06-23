@@ -1,3 +1,12 @@
+export interface Basin {
+  id: string
+  name: string
+  slug: string
+  region: string
+  description: string | null
+  created_at: string
+}
+
 export interface WaterBody {
   id: string
   name: string
@@ -10,6 +19,7 @@ export interface WaterBody {
   editorial_notes: string | null
   usgs_station_ids: string[]
   typical_species: string[]
+  basin_id: string | null
   created_at: string
 }
 

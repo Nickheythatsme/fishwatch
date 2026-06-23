@@ -1,3 +1,12 @@
+-- Oregon basins (must precede water_bodies inserts due to FK)
+INSERT INTO basins (name, slug, region, description) VALUES
+('Deschutes',          'deschutes',          'oregon', 'Central Oregon''s iconic high-desert river system, anchored by the renowned Lower Deschutes and its spring-fed tributaries.'),
+('Willamette–McKenzie','willamette-mckenzie', 'oregon', 'The Willamette Valley watershed including the technical spring-run McKenzie and the broad mid-valley Willamette.'),
+('Rogue–Umpqua',       'rogue-umpqua',        'oregon', 'Southern Oregon''s legendary steelhead and trout rivers, including the fly-only North Umpqua and the Rogue''s Holy Water.'),
+('Klamath',            'klamath',             'oregon', 'The high-desert Klamath River tailwater below Keno Dam, famous for its redband trout fishery.'),
+('Mt Hood–Columbia',   'mt-hood-columbia',    'oregon', 'Columbia River Gorge tributaries draining the south slopes of Mt. Hood, offering premier steelhead and salmon runs near Portland.'),
+('Grande Ronde',       'grande-ronde-basin',  'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.');
+
 -- Central Oregon rivers and lakes
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
 ('Lower Deschutes River', 'lower-deschutes', 'oregon', 44.9572, -121.2695, ARRAY['14092500'], ARRAY['rainbow trout', 'steelhead', 'brown trout'], 'Trophy water below Pelton Dam. Year-round fishery with strong redsides.'),
@@ -43,6 +52,35 @@ UPDATE water_bodies
 SET author = 'Nick Grout',
     editorial_notes = 'The canyon below Trout Creek fishes noticeably better in the afternoon this time of year — wait for the sun to warm the water and the redsides start looking up. Park at Trout Creek and walk downstream a mile past the crowds; the riffle corners hold the best dry-dropper water.'
 WHERE slug = 'lower-deschutes';
+
+-- Assign Oregon water bodies to their basins
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'deschutes')
+WHERE slug IN (
+    'lower-deschutes', 'upper-deschutes', 'middle-deschutes',
+    'crooked-river', 'fall-river', 'metolius', 'crane-prairie',
+    'hosmer-lake', 'east-lake', 'davis-lake', 'tumalo-creek'
+);
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'willamette-mckenzie')
+WHERE slug IN ('mckenzie-river', 'willamette-river');
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'rogue-umpqua')
+WHERE slug IN ('rogue-river', 'north-umpqua-river');
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'klamath')
+WHERE slug = 'klamath-river';
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'mt-hood-columbia')
+WHERE slug IN ('hood-river', 'sandy-river', 'clackamas-river');
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde-basin')
+WHERE slug = 'grande-ronde';
 
 INSERT INTO species (name, common_aliases) VALUES
 ('rainbow trout', ARRAY['rainbow', 'bows', 'redsides', 'redside', 'bow', 'deschutes redside']),
