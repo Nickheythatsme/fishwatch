@@ -1,15 +1,15 @@
 import type { MetadataRoute } from 'next'
 import { ssrQuery } from '@/lib/graphql/execute'
-import { isNoDataSignal } from '@/components/signals/score-utils'
+import { isPublishable } from '@/lib/seo/gating'
 import { SITE_URL } from '@/lib/seo/metadata'
 
 // Regenerate the sitemap on the same cadence as the per-water pages so `lastmod`
 // tracks fresh scores without rebuilding on every request.
 export const revalidate = 1800
 
-// Lists every water with its latest score so the sitemap can advertise an
-// accurate `lastModified`. The publish gate below only needs the score-shaped
-// fields `isNoDataSignal` inspects plus the `scoreDate` used for `lastModified`.
+// Lists every water with its latest score and most-recent report date so the
+// sitemap can apply the data-completeness gate and report an accurate
+// `lastModified` (freshest of scoreDate / latest report date, per issue #68).
 const SITEMAP_WATERS_QUERY = /* GraphQL */ `
   query SitemapWaters {
     waterBodies {
@@ -20,6 +20,9 @@ const SITEMAP_WATERS_QUERY = /* GraphQL */ `
         flowScore
         sentimentScore
         consensusScore
+      }
+      recentReports(limit: 1) {
+        reportDate
       }
     }
   }
@@ -34,6 +37,7 @@ interface SitemapWater {
     sentimentScore: number | null
     consensusScore: number | null
   } | null
+  recentReports: Array<{ reportDate: string | null }>
 }
 
 interface SitemapWatersData {
@@ -76,17 +80,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const waterEntries: MetadataRoute.Sitemap = waters
-    // Inline publish gate: only advertise waters that carry a real score, never a
-    // NO-DATA/empty placeholder signal, so we don't point crawlers at thin pages.
-    // This mirrors the per-page `isNoDataSignal` check; it will be formalized by
-    // the `isPublishable(water)` helper from issue #68.
-    .filter((wb) => wb.currentSignal != null && !isNoDataSignal(wb.currentSignal))
-    .map((wb) => ({
-      url: `${SITE_URL}/water/${wb.slug}`,
-      lastModified: new Date(wb.currentSignal!.scoreDate),
-      changeFrequency: 'daily' as const,
-      priority: 0.7,
-    }))
+    // Data-completeness gate: only waters with a real signal AND a fresh report
+    // within PUBLISH_REPORT_WINDOW_DAYS days are advertised to crawlers (issue #68).
+    // Matches the per-page robots decision in generateMetadata exactly.
+    .filter((wb) =>
+      isPublishable({
+        signal: wb.currentSignal,
+        latestReportDate: wb.recentReports[0]?.reportDate ?? null,
+      })
+    )
+    .map((wb) => {
+      // lastmod = freshest of the score date and the latest report date (issue #68 §5.2).
+      const latestReportDate = wb.recentReports[0]?.reportDate ?? null
+      const dates = [wb.currentSignal!.scoreDate, latestReportDate].filter(
+        (d): d is string => d != null
+      )
+      const lastmod = dates.sort().at(-1) ?? wb.currentSignal!.scoreDate
+      return {
+        url: `${SITE_URL}/water/${wb.slug}`,
+        lastModified: new Date(lastmod),
+        changeFrequency: 'daily' as const,
+        priority: 0.7,
+      }
+    })
 
   return [...staticEntries, ...waterEntries]
 }

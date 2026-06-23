@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seo:audit": "node scripts/seo-audit.mjs"
   },
   "dependencies": {
     "@apollo/client": "^4.2.3",

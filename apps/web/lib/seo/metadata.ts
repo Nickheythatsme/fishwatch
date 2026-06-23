@@ -116,8 +116,7 @@ export function buildWaterMetadata(water: WaterMetadataInput): Metadata {
       title,
       description,
     },
-    // The index/noindex decision belongs to the data-completeness gate (#68).
-    // Hardcode `index: true` for now; swap to `isPublishable(water)` when #68 lands.
+    // Default; overridden by generateMetadata via isPublishable() (issue #68).
     robots: { index: true, follow: true },
   }
 }
