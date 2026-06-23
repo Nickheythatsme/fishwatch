@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { buildWaterMetadata, SITE_URL } from '@/lib/seo/metadata'
+import { isPublishable } from '@/lib/seo/gating'
 import { buildWaterPageGraph } from '@/lib/seo/jsonld'
 import { buildCitableLede } from '@/lib/seo/citableLede'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -225,7 +226,16 @@ export async function generateMetadata({
   }
   if (!data.waterBody) return {}
 
-  return buildWaterMetadata(data.waterBody)
+  const wb = data.waterBody
+  const publishable = isPublishable({
+    signal: wb.currentSignal,
+    latestReportDate: wb.recentReports[0]?.reportDate ?? null,
+  })
+
+  return {
+    ...buildWaterMetadata(wb),
+    robots: { index: publishable, follow: true },
+  }
 }
 
 export default async function WaterBodyPage({
