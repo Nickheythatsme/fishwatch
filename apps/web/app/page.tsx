@@ -1,12 +1,21 @@
+import type { Metadata } from 'next'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { DashboardView } from '@/components/intelligence/DashboardView'
 import type { RegionConditions } from '@/components/intelligence/LocalConditionsPanel'
 import type { SortOption } from '@/components/intelligence/IntelligencePanel'
+import { SITE_URL } from '@/lib/seo/metadata'
 import {
   pickRegion,
   VALID_SORTS,
   type DashboardWaterBody,
 } from '@/components/intelligence/dashboard-utils'
+
+// Self-referencing canonical for the homepage. Without this, Google saw
+// `score.fish` and `www.score.fish` as duplicates and dropped the homepage from
+// the index ("Duplicate without user-selected canonical"). See issue #115.
+export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/` },
+}
 
 // Revalidate the server-rendered homepage every 30 minutes, aligned with the
 // scoring pipeline cron so the indexed ranked list stays fresh without

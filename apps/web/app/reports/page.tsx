@@ -1,6 +1,8 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { ReportCard } from '@/components/reports/ReportCard'
+import { SITE_URL } from '@/lib/seo/metadata'
 import {
   activeFilterCount,
   matchesReportFilters,
@@ -10,6 +12,12 @@ import {
 // Keep the indexed report feed fresh on the same 30-minute cadence as the rest
 // of the server-rendered pages.
 export const revalidate = 1800
+
+// Self-referencing canonical so the report feed isn't flagged as a duplicate
+// (see issue #115).
+export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/reports` },
+}
 
 const REPORTS_QUERY = /* GraphQL */ `
   query Reports($limit: Int, $offset: Int) {
