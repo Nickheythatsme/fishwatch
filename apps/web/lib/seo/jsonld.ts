@@ -324,16 +324,21 @@ export interface ItemListEntry {
 }
 
 /**
- * `ItemList` for the /leaderboard ranked waters. Each entry is a `ListItem`
- * with 1-based position, name, and canonical URL — the fields search engines
- * use to understand the ranking. Returns `null` when the entry list is empty
- * so the page emits no script tag rather than an empty graph node.
+ * `ItemList` for a ranked set of waters. Each entry is a `ListItem` with
+ * 1-based position, name, and canonical URL — the fields search engines use to
+ * understand the ranking. Pass `listName` to override the default title (used
+ * for basin hub pages). Returns `null` when the entry list is empty so the
+ * page emits no script tag rather than an empty graph node.
  */
-export function buildItemList(entries: ItemListEntry[], siteUrl: string): ItemList | null {
+export function buildItemList(
+  entries: ItemListEntry[],
+  siteUrl: string,
+  listName = "Today's Top Fishing Waters"
+): ItemList | null {
   if (entries.length === 0) return null
   return {
     '@type': 'ItemList',
-    name: "Today's Top Fishing Waters",
+    name: listName,
     itemListElement: entries.map((entry, i): ListItem => ({
       '@type': 'ListItem',
       position: i + 1,

@@ -49,6 +49,14 @@ const WATER_BODY_QUERY = /* GraphQL */ `
       editorialNotes
       typicalSpecies
       currentFlow
+      basin {
+        name
+        slug
+        waters {
+          slug
+          name
+        }
+      }
       currentSignal {
         compositeScore
         flowScore
@@ -127,6 +135,12 @@ interface GaugeReading {
   gaugeHeightFt: number | null
 }
 
+interface BasinRef {
+  name: string
+  slug: string
+  waters: Array<{ slug: string; name: string }>
+}
+
 interface WaterBody {
   id: string
   name: string
@@ -139,6 +153,7 @@ interface WaterBody {
   editorialNotes: string | null
   typicalSpecies: string[]
   currentFlow: number | null
+  basin: BasinRef | null
   currentSignal: Signal | null
   signals: SignalPoint[]
   recentReports: Report[]
@@ -161,10 +176,7 @@ interface OregonSlugsData {
   waterBodies: { slug: string }[]
 }
 
-// Interim "related waters" source: other waters in the same `region`. The
-// `waterBodies(region:)` field returns slug + name, which is all the
-// RelatedWaters links need. Switch this to `basin_id` once Epic 4 (#65) adds the
-// column — tracked in #67.
+// Region fallback: other waters in the same region when no basin is set.
 const RELATED_WATERS_QUERY = /* GraphQL */ `
   query RelatedWaters($region: String!) {
     waterBodies(region: $region) {
@@ -181,7 +193,7 @@ interface RelatedWatersData {
 // Max sibling waters to surface, to keep the link block scannable on mobile.
 const MAX_RELATED_WATERS = 6
 
-async function fetchRelatedWaters(region: string, currentSlug: string): Promise<RelatedWater[]> {
+async function fetchRelatedByRegion(region: string, currentSlug: string): Promise<RelatedWater[]> {
   try {
     const data = await ssrQuery<RelatedWatersData>(RELATED_WATERS_QUERY, { region })
     return (data.waterBodies ?? [])
@@ -299,15 +311,21 @@ export default async function WaterBodyPage({
   // island only receive primitives, which serialize fine.)
   const gaugeReadings = wb.gaugeReadings.map((r) => ({ ...r }))
 
-  // Sibling waters for the internal-linking block (excludes the current water).
-  const relatedWaters = await fetchRelatedWaters(wb.region, wb.slug)
+  // Sibling waters: use the water's real basin when present; fall back to
+  // region grouping when basin is null (e.g. basins table is empty / not yet
+  // migrated). The basin's `waters` list comes from the main query so no extra
+  // round-trip is needed for the basin case.
+  const relatedWaters = wb.basin
+    ? (wb.basin.waters ?? [])
+        .filter((w) => w.slug !== wb.slug)
+        .slice(0, MAX_RELATED_WATERS)
+    : await fetchRelatedByRegion(wb.region, wb.slug)
 
-  // Breadcrumb trail: Home → Water. A basin level slots in between Home and the
-  // water once Epic 4 (#67) ships basin hubs — insert a `{ label, href: '/basin/...' }`
-  // crumb here at that point; Breadcrumbs renders any ordered list as-is.
+  // Breadcrumb trail: Home → [Basin →] Water. The basin crumb is added when the
+  // water has a basin; falls back to Home → Water when basin is null.
   const breadcrumbs: Crumb[] = [
     { label: 'Home', href: '/' },
-    // Basin crumb goes here — wired in Epic 4 (#67).
+    ...(wb.basin ? [{ label: wb.basin.name, href: `/basin/${wb.basin.slug}` }] : []),
     { label: wb.name },
   ]
 
@@ -501,7 +519,7 @@ export default async function WaterBodyPage({
       </div>
 
       <div className="mt-10">
-        <RelatedWaters waters={relatedWaters} region={wb.region} />
+        <RelatedWaters waters={relatedWaters} region={wb.region} basin={wb.basin} />
       </div>
     </div>
   )

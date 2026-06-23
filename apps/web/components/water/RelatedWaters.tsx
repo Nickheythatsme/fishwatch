@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
 /**
- * Minimal shape needed to link to a sibling water. Sourced from the
- * `waterBodies(region:)` GraphQL field (slug + name).
+ * Minimal shape needed to link to a sibling water. Sourced from either the
+ * basin's `waters` list or the `waterBodies(region:)` GraphQL field.
  */
 export interface RelatedWater {
   slug: string
@@ -12,8 +12,10 @@ export interface RelatedWater {
 interface RelatedWatersProps {
   /** Sibling waters to link to (current water already excluded by the caller). */
   waters: RelatedWater[]
-  /** Region slug of the current water, e.g. `oregon`, used for the heading. */
+  /** Region slug of the current water, e.g. `oregon` — used as fallback heading when no basin. */
   region: string
+  /** Basin the water belongs to. When present, the heading links to the basin hub. */
+  basin?: { name: string; slug: string } | null
 }
 
 function titleCaseRegion(s: string): string {
@@ -26,21 +28,18 @@ function titleCaseRegion(s: string): string {
 
 /**
  * Server-rendered "related waters" block: internal links to other waters in the
- * same region. These crawlable links build the hub-and-spoke internal-link graph
- * the SEO strategy calls for.
+ * same basin (when available) or the same region (fallback). These crawlable
+ * links build the hub-and-spoke internal-link graph the SEO strategy calls for.
  *
- * Interim data source: same `region` (the only grouping that exists today). Epic
- * 4 (#65) adds a `basin_id` column; switch this list to "other waters in this
- * basin" then — tracked in #67.
- *
- * Deferred links: the SEO roadmap also wants links to the basin hub (#67) and
- * the leaderboard (#63). Those routes (`/basin/*`, `/leaderboard`) 404 today, so
- * they are intentionally omitted here and added when #63 / #67 land.
+ * When `basin` is provided the heading links to the `/basin/{slug}` hub page.
+ * When `basin` is null or omitted the heading falls back to the region label
+ * with no link, matching the pre-basins behaviour.
  */
-export function RelatedWaters({ waters, region }: RelatedWatersProps) {
+export function RelatedWaters({ waters, region, basin }: RelatedWatersProps) {
   if (waters.length === 0) return null
 
-  const regionLabel = titleCaseRegion(region)
+  const headingLabel = basin ? basin.name : titleCaseRegion(region)
+  const basinHref = basin ? `/basin/${basin.slug}` : null
 
   return (
     <section aria-labelledby="related-waters-heading">
@@ -48,7 +47,17 @@ export function RelatedWaters({ waters, region }: RelatedWatersProps) {
         id="related-waters-heading"
         className="mb-4 font-headline text-lg font-bold text-on-surface"
       >
-        More waters in {regionLabel}
+        More waters in{' '}
+        {basinHref ? (
+          <Link
+            href={basinHref}
+            className="text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          >
+            {headingLabel}
+          </Link>
+        ) : (
+          headingLabel
+        )}
       </h2>
       <ul className="grid gap-2 sm:grid-cols-2">
         {waters.map((water) => (

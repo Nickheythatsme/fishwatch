@@ -74,6 +74,46 @@ export function buildLeaderboardMetadata(): Metadata {
   }
 }
 
+// The fields needed for basin page metadata.
+interface BasinMetadataInput {
+  name: string
+  slug: string
+  description: string | null
+}
+
+/**
+ * Build /basin/[slug] hub page metadata: title, description, canonical, and
+ * OG / Twitter tags. Mirrors `buildLeaderboardMetadata` in structure.
+ */
+export function buildBasinMetadata(basin: BasinMetadataInput): Metadata {
+  const title = `${basin.name} Fishing Report & Conditions — ${currentMonthYear()}`
+  const description = truncate(
+    basin.description?.trim() ||
+      `Fishing conditions, top waters, and reports for the ${basin.name} in the Pacific Northwest.`,
+    DESCRIPTION_MAX
+  )
+  const canonical = `${SITE_URL}/basin/${basin.slug}`
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  }
+}
+
 /**
  * Build per-water page metadata: a unique title, description, canonical, and
  * Open Graph / Twitter tags. Shared by `generateMetadata` so the markup isn't
