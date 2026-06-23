@@ -9,6 +9,12 @@ export const typeDefs = /* GraphQL */ `
     """Top-scoring water bodies right now"""
     topPicks(limit: Int = 5): [WaterBody!]!
 
+    """All basins, optionally filtered by region"""
+    basins(region: String): [Basin!]!
+
+    """Single basin by slug"""
+    basin(slug: String!): Basin
+
     """Search parsed reports across all sources"""
     reports(
       waterBodyId: ID
@@ -52,6 +58,20 @@ export const typeDefs = /* GraphQL */ `
 
     """Current flow in CFS from most recent reading"""
     currentFlow: Float
+
+    """Basin this water body belongs to, if any"""
+    basin: Basin
+  }
+
+  type Basin {
+    id: ID!
+    name: String!
+    slug: String!
+    region: String!
+    description: String
+
+    """Water bodies within this basin"""
+    waters: [WaterBody!]!
   }
 
   type Signal {
