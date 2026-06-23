@@ -14,6 +14,7 @@ import type { Crumb } from '@/components/shell/Breadcrumbs'
 import type { Hatch } from '@/components/reports/HatchTable'
 import type { SourceCredit } from '@/components/reports/source-utils'
 import { scoreToLabel } from '@/components/signals/score-utils'
+import { formatDate } from './citableLede'
 
 /**
  * Typed schema.org (JSON-LD) builders for the per-water page.
@@ -181,6 +182,10 @@ export interface FaqInput {
   hatches: Hatch[]
   /** Recommended flies from the current signal (same list the page renders). */
   recommendedFlies: string[]
+  /** Freshest date for the page's data (YYYY-MM-DD) — added to the FAQ node and the answer text. */
+  dateModified?: string | null
+  /** Element id of the citable lede `<p>` when rendered — enables speakable schema. */
+  ledeId?: string | null
 }
 
 function faqEntry(name: string, text: string): Question {
@@ -200,6 +205,11 @@ function describeHatch(h: Hatch): string {
  * `FAQPage` built ONLY from questions the page can genuinely answer — no
  * boilerplate or empty answers (which read as thin content). Each Q&A is gated
  * on its backing data existing. Returns `null` when no question can be answered.
+ *
+ * When `dateModified` is provided, the FAQ node carries a timestamp and the
+ * "fishing well" answer includes an "as of" clause so each answer is
+ * independently dated. When `ledeId` is provided, a `speakable` selector is
+ * added targeting the citable lede `<p>` on the page.
  */
 export function buildFaqPage(input: FaqInput): FAQPage | null {
   const questions: Question[] = []
@@ -207,9 +217,12 @@ export function buildFaqPage(input: FaqInput): FAQPage | null {
   if (input.signal) {
     const label = scoreToLabel(input.signal.compositeScore)
     const score = `${label} (${input.signal.compositeScore.toFixed(1)}/10)`
+    const dateSuffix = input.dateModified
+      ? ` (as of ${formatDate(input.dateModified)})`
+      : ''
     const answer = input.signal.summary
-      ? `${input.signal.summary} Current conditions rate as ${score}.`
-      : `Current conditions on ${input.name} rate as ${score}.`
+      ? `${input.signal.summary} Current conditions rate as ${score}${dateSuffix}.`
+      : `Current conditions on ${input.name} rate as ${score}${dateSuffix}.`
     questions.push(faqEntry(`Is ${input.name} fishing well right now?`, answer))
   }
 
@@ -230,7 +243,20 @@ export function buildFaqPage(input: FaqInput): FAQPage | null {
   }
 
   if (questions.length === 0) return null
-  return { '@type': 'FAQPage', mainEntity: questions }
+
+  return {
+    '@type': 'FAQPage',
+    mainEntity: questions,
+    ...(input.dateModified ? { dateModified: input.dateModified } : {}),
+    ...(input.ledeId
+      ? {
+          speakable: {
+            '@type': 'SpeakableSpecification' as const,
+            cssSelector: `#${input.ledeId}`,
+          },
+        }
+      : {}),
+  } as FAQPage
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +351,8 @@ export interface WaterPageGraphInput {
   /** Freshest of score date / latest report date — the page's "Last updated" stamp. */
   lastUpdated: string | null
   siteUrl: string
+  /** Element id of the citable lede `<p>` when it is rendered — enables speakable schema on the FAQPage node. */
+  ledeId?: string | null
 }
 
 /**
@@ -333,7 +361,7 @@ export interface WaterPageGraphInput {
  * once and renders the result via `<JsonLd>`.
  */
 export function buildWaterPageGraph(input: WaterPageGraphInput): Graph | null {
-  const { water, crumbs, signal, hatches, gaugeReadings, sourceCredits, lastUpdated, siteUrl } =
+  const { water, crumbs, signal, hatches, gaugeReadings, sourceCredits, lastUpdated, siteUrl, ledeId } =
     input
 
   const breadcrumb = buildBreadcrumbList(crumbs, siteUrl)
@@ -353,6 +381,8 @@ export function buildWaterPageGraph(input: WaterPageGraphInput): Graph | null {
     signal: signal ? { compositeScore: signal.compositeScore, summary: signal.summary } : null,
     hatches,
     recommendedFlies: signal?.recommendedFlies ?? [],
+    dateModified: lastUpdated,
+    ledeId: ledeId ?? null,
   })
 
   const article = water.author

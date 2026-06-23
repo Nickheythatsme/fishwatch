@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import type { Graph } from 'schema-dts'
-import { buildWaterPageGraph, type WaterPageGraphInput } from '@/lib/seo/jsonld'
+import {
+  buildWaterPageGraph,
+  buildFaqPage,
+  type WaterPageGraphInput,
+  type FaqInput,
+} from '@/lib/seo/jsonld'
 
 const SITE_URL = 'https://score.fish'
 
@@ -144,5 +149,57 @@ describe('buildWaterPageGraph — no-data signal is treated as no signal', () =>
     const [ds] = nodesOfType(graph!, 'Dataset')
     const vars = ds.variableMeasured as Array<{ name: string }>
     expect(vars.some((v) => v.name === 'Fishing conditions score')).toBe(false)
+  })
+})
+
+describe('buildFaqPage — dated answers + speakable (issue #103)', () => {
+  const baseFaqInput: FaqInput = {
+    name: 'Crooked River',
+    signal: { compositeScore: 7.4, summary: 'Fish are looking up.' },
+    hatches: [{ name: 'Blue Winged Olive', stage: 'adult', timing: 'afternoon' }],
+    recommendedFlies: ['Zebra Midge'],
+  }
+
+  it('adds an "as of <date>" clause to the fishing-well answer when dateModified is set', () => {
+    const faq = buildFaqPage({ ...baseFaqInput, dateModified: '2026-06-21' })
+    expect(faq).not.toBeNull()
+    const q = (faq!.mainEntity as Array<Record<string, unknown>>).find((e) =>
+      String((e as { name?: string }).name).includes('fishing well')
+    )
+    const answer = (q!.acceptedAnswer as { text: string }).text
+    expect(answer).toContain('as of June 21, 2026')
+    // scoreToLabel(7.4) → the implementation's label for that score; assert the
+    // score number is present rather than hard-coding the label word.
+    expect(answer).toContain('(7.4/10)')
+  })
+
+  it('omits the "as of" clause when dateModified is absent', () => {
+    const faq = buildFaqPage(baseFaqInput)
+    const q = (faq!.mainEntity as Array<Record<string, unknown>>).find((e) =>
+      String((e as { name?: string }).name).includes('fishing well')
+    )
+    const answer = (q!.acceptedAnswer as { text: string }).text
+    expect(answer).not.toContain('as of')
+  })
+
+  it('carries dateModified on the FAQPage node when provided', () => {
+    const faq = buildFaqPage({ ...baseFaqInput, dateModified: '2026-06-21' })
+    expect((faq as Record<string, unknown>).dateModified).toBe('2026-06-21')
+  })
+
+  it('adds a speakable selector targeting the lede id when ledeId is set', () => {
+    const faq = buildFaqPage({ ...baseFaqInput, ledeId: 'citable-lede' })
+    const speakable = (faq as Record<string, unknown>).speakable as
+      | Record<string, unknown>
+      | undefined
+    expect(speakable).toBeDefined()
+    expect(speakable!['@type']).toBe('SpeakableSpecification')
+    expect(speakable!.cssSelector).toBe('#citable-lede')
+  })
+
+  it('omits speakable and dateModified when neither is provided', () => {
+    const faq = buildFaqPage(baseFaqInput) as Record<string, unknown>
+    expect(faq.speakable).toBeUndefined()
+    expect(faq.dateModified).toBeUndefined()
   })
 })
