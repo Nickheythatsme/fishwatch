@@ -5,6 +5,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Reference / lookup tables
 -- ============================================================
 
+CREATE TABLE basins (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name        TEXT NOT NULL UNIQUE,
+    slug        TEXT NOT NULL UNIQUE,
+    region      TEXT NOT NULL,
+    description TEXT,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE water_bodies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL UNIQUE,
@@ -17,6 +26,7 @@ CREATE TABLE water_bodies (
     editorial_notes TEXT,                   -- Human-written first-hand local notes
     usgs_station_ids TEXT[] DEFAULT '{}',   -- Array of USGS station IDs
     typical_species TEXT[] DEFAULT '{}',    -- e.g. {"rainbow trout", "brown trout"}
+    basin_id UUID REFERENCES basins(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -105,6 +115,7 @@ CREATE TABLE water_scores (
 -- Indexes for query performance
 -- ============================================================
 
+CREATE INDEX idx_water_bodies_basin ON water_bodies(basin_id);
 CREATE INDEX idx_gauge_readings_station_time ON gauge_readings(station_id, measured_at DESC);
 CREATE INDEX idx_gauge_readings_water_body ON gauge_readings(water_body_id, measured_at DESC);
 CREATE INDEX idx_parsed_reports_water_body ON parsed_reports(water_body_id, report_date DESC);
