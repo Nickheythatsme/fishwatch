@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildWaterMetadata, SITE_URL } from '@/lib/seo/metadata'
+import { buildWaterMetadata, buildLeaderboardMetadata, SITE_URL } from '@/lib/seo/metadata'
 
 const base = {
   name: 'Crooked River',
@@ -76,5 +76,39 @@ describe('buildWaterMetadata', () => {
   it('marks the page indexable (gating to noindex is owned by #68)', () => {
     const meta = buildWaterMetadata(base)
     expect(meta.robots).toEqual({ index: true, follow: true })
+  })
+})
+
+describe('buildLeaderboardMetadata', () => {
+  it('builds a freshness-stamped Pacific Northwest title', () => {
+    const meta = buildLeaderboardMetadata()
+    expect(meta.title).toMatch(/^Pacific Northwest Fishing Report — Today's Top Waters/)
+    // Month + 4-digit year (e.g. "(June 2026)") makes it read as current.
+    expect(String(meta.title)).toMatch(/[A-Z][a-z]+ \d{4}\)$/)
+  })
+
+  it('uses /leaderboard as canonical and OG url', () => {
+    const meta = buildLeaderboardMetadata()
+    const canonical = `${SITE_URL}/leaderboard`
+    expect(meta.alternates?.canonical).toBe(canonical)
+    expect(meta.openGraph?.url).toBe(canonical)
+  })
+
+  it('mirrors title/description into OG and Twitter', () => {
+    const meta = buildLeaderboardMetadata()
+    expect(meta.openGraph?.title).toBe(meta.title)
+    expect(meta.openGraph?.description).toBe(meta.description)
+    expect(meta.twitter?.title).toBe(meta.title)
+    expect(meta.twitter?.description).toBe(meta.description)
+  })
+
+  it('is indexable', () => {
+    const meta = buildLeaderboardMetadata()
+    expect(meta.robots).toEqual({ index: true, follow: true })
+  })
+
+  it('describes Pacific Northwest waters consistently with the title geography', () => {
+    const meta = buildLeaderboardMetadata()
+    expect(meta.description).toContain('Pacific Northwest')
   })
 })

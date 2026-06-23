@@ -43,14 +43,19 @@ interface SitemapWatersData {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
-  // Static, always-indexable routes. `/leaderboard` and `/basin/*` are
-  // intentionally omitted — those routes don't exist yet (Epic 4).
+  // Static, always-indexable routes.
   const staticEntries: MetadataRoute.Sitemap = [
     {
       url: `${SITE_URL}/`,
       lastModified: now,
       changeFrequency: 'daily',
       priority: 1,
+    },
+    {
+      url: `${SITE_URL}/leaderboard`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.9,
     },
     {
       url: `${SITE_URL}/reports`,

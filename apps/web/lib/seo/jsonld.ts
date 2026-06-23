@@ -4,6 +4,7 @@ import type {
   Dataset,
   FAQPage,
   Graph,
+  ItemList,
   ListItem,
   LocalBusiness,
   PropertyValue,
@@ -311,6 +312,35 @@ export function buildSourceBusinesses(credits: SourceCredit[]): LocalBusiness[] 
     })
   }
   return out
+}
+
+// ---------------------------------------------------------------------------
+// ItemList — ranked leaderboard (/leaderboard page)
+// ---------------------------------------------------------------------------
+
+export interface ItemListEntry {
+  name: string
+  slug: string
+}
+
+/**
+ * `ItemList` for the /leaderboard ranked waters. Each entry is a `ListItem`
+ * with 1-based position, name, and canonical URL — the fields search engines
+ * use to understand the ranking. Returns `null` when the entry list is empty
+ * so the page emits no script tag rather than an empty graph node.
+ */
+export function buildItemList(entries: ItemListEntry[], siteUrl: string): ItemList | null {
+  if (entries.length === 0) return null
+  return {
+    '@type': 'ItemList',
+    name: "Today's Top Fishing Waters",
+    itemListElement: entries.map((entry, i): ListItem => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: entry.name,
+      url: `${siteUrl}/water/${entry.slug}`,
+    })),
+  }
 }
 
 // ---------------------------------------------------------------------------

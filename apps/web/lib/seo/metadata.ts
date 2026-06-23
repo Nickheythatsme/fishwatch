@@ -40,6 +40,41 @@ function currentMonthYear(): string {
 }
 
 /**
+ * Build `/leaderboard` page metadata: title, description, canonical, and OG /
+ * Twitter tags. The month/year in the title is recomputed on each ISR pass so
+ * the heading reads as current without a rebuild.
+ */
+export function buildLeaderboardMetadata(): Metadata {
+  // Title, description, and the underlying query are all Pacific Northwest-wide
+  // (the leaderboard ranks every water body, not just Central Oregon) so the
+  // geography reads consistently in search results and matches the product's
+  // PNW branding.
+  const title = `Pacific Northwest Fishing Report — Today's Top Waters (${currentMonthYear()})`
+  const description =
+    'Ranked fishing conditions across Pacific Northwest waters, updated every 30 minutes from fly shop reports and USGS gauge data.'
+  const canonical = `${SITE_URL}/leaderboard`
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  }
+}
+
+/**
  * Build per-water page metadata: a unique title, description, canonical, and
  * Open Graph / Twitter tags. Shared by `generateMetadata` so the markup isn't
  * duplicated inline.
