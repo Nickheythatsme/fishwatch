@@ -120,6 +120,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         >
           <div
             style={{
+              display: 'flex',
               color: '#ffffff',
               fontSize: score != null ? 68 : 80,
               fontWeight: 800,
@@ -149,13 +150,14 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               </div>
               <div
                 style={{
+                  display: 'flex',
                   color: '#94a3b8',
                   fontSize: 22,
                   fontWeight: 500,
                   marginTop: 6,
                 }}
               >
-                {scoreLabel(score)} · out of 10
+                {`${scoreLabel(score)} · out of 10`}
               </div>
             </div>
           )}
