@@ -45,7 +45,11 @@ function currentMonthYear(): string {
  * the heading reads as current without a rebuild.
  */
 export function buildLeaderboardMetadata(): Metadata {
-  const title = `Central Oregon Fishing Report — Today's Top Waters (${currentMonthYear()})`
+  // Title, description, and the underlying query are all Pacific Northwest-wide
+  // (the leaderboard ranks every water body, not just Central Oregon) so the
+  // geography reads consistently in search results and matches the product's
+  // PNW branding.
+  const title = `Pacific Northwest Fishing Report — Today's Top Waters (${currentMonthYear()})`
   const description =
     'Ranked fishing conditions across Pacific Northwest waters, updated every 30 minutes from fly shop reports and USGS gauge data.'
   const canonical = `${SITE_URL}/leaderboard`
