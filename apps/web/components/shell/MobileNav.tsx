@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, Map as MapIcon, Newspaper, type LucideIcon } from 'lucide-react'
+import { Compass, Map as MapIcon, Newspaper, Trophy, type LucideIcon } from 'lucide-react'
 
 const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/', label: 'Intel', icon: Compass },
@@ -10,6 +10,7 @@ const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   // the bottom-sheet drawer.
   { href: '/#map', label: 'Map', icon: MapIcon },
   { href: '/reports', label: 'Reports', icon: Newspaper },
+  { href: '/leaderboard', label: 'Top', icon: Trophy },
 ]
 
 function isActive(pathname: string, href: string): boolean {

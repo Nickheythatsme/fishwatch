@@ -3,8 +3,10 @@ import type { Graph } from 'schema-dts'
 import {
   buildWaterPageGraph,
   buildFaqPage,
+  buildItemList,
   type WaterPageGraphInput,
   type FaqInput,
+  type ItemListEntry,
 } from '@/lib/seo/jsonld'
 
 const SITE_URL = 'https://score.fish'
@@ -149,6 +151,49 @@ describe('buildWaterPageGraph — no-data signal is treated as no signal', () =>
     const [ds] = nodesOfType(graph!, 'Dataset')
     const vars = ds.variableMeasured as Array<{ name: string }>
     expect(vars.some((v) => v.name === 'Fishing conditions score')).toBe(false)
+  })
+})
+
+describe('buildItemList', () => {
+  const SITE_URL = 'https://score.fish'
+
+  const entries: ItemListEntry[] = [
+    { name: 'Deschutes River', slug: 'deschutes-river' },
+    { name: 'Crooked River', slug: 'crooked-river' },
+    { name: 'Metolius River', slug: 'metolius-river' },
+  ]
+
+  it('returns null for an empty entry list', () => {
+    expect(buildItemList([], SITE_URL)).toBeNull()
+  })
+
+  it('returns an ItemList with the correct @type', () => {
+    const list = buildItemList(entries, SITE_URL)
+    expect(list).not.toBeNull()
+    expect(list!['@type']).toBe('ItemList')
+  })
+
+  it('assigns 1-based positions in order', () => {
+    const list = buildItemList(entries, SITE_URL)
+    const items = list!.itemListElement as Array<{ position: number; name: string; url: string }>
+    expect(items.map((i) => i.position)).toEqual([1, 2, 3])
+  })
+
+  it('builds canonical water URLs from slug and siteUrl', () => {
+    const list = buildItemList(entries, SITE_URL)
+    const items = list!.itemListElement as Array<{ url: string }>
+    expect(items[0].url).toBe('https://score.fish/water/deschutes-river')
+    expect(items[1].url).toBe('https://score.fish/water/crooked-river')
+  })
+
+  it('preserves the water name on each ListItem', () => {
+    const list = buildItemList(entries, SITE_URL)
+    const items = list!.itemListElement as Array<{ name: string }>
+    expect(items.map((i) => i.name)).toEqual([
+      'Deschutes River',
+      'Crooked River',
+      'Metolius River',
+    ])
   })
 })
 

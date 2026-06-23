@@ -10,6 +10,7 @@ import { ReportFilters } from '@/components/reports/ReportFilters'
 const TABS = [
   { href: '/', label: 'Intelligence' },
   { href: '/reports', label: 'Reports' },
+  { href: '/leaderboard', label: 'Leaderboard' },
 ] as const
 
 function isActive(pathname: string, href: string): boolean {
