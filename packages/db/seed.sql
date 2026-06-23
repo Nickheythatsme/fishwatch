@@ -5,7 +5,7 @@ INSERT INTO basins (name, slug, region, description) VALUES
 ('Rogue–Umpqua',       'rogue-umpqua',        'oregon', 'Southern Oregon''s legendary steelhead and trout rivers, including the fly-only North Umpqua and the Rogue''s Holy Water.'),
 ('Klamath',            'klamath',             'oregon', 'The high-desert Klamath River tailwater below Keno Dam, famous for its redband trout fishery.'),
 ('Mt Hood–Columbia',   'mt-hood-columbia',    'oregon', 'Columbia River Gorge tributaries draining the south slopes of Mt. Hood, offering premier steelhead and salmon runs near Portland.'),
-('Grande Ronde',       'grande-ronde-basin',  'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.');
+('Grande Ronde',       'grande-ronde',        'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.');
 
 -- Central Oregon rivers and lakes
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
@@ -79,7 +79,7 @@ SET basin_id = (SELECT id FROM basins WHERE slug = 'mt-hood-columbia')
 WHERE slug IN ('hood-river', 'sandy-river', 'clackamas-river');
 
 UPDATE water_bodies
-SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde-basin')
+SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde')
 WHERE slug = 'grande-ronde';
 
 INSERT INTO species (name, common_aliases) VALUES

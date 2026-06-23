@@ -1,6 +1,6 @@
 -- Add basins table and basin_id FK on water_bodies (issue #65)
 
-CREATE TABLE basins (
+CREATE TABLE IF NOT EXISTS basins (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name        TEXT NOT NULL UNIQUE,
     slug        TEXT NOT NULL UNIQUE,
@@ -10,18 +10,19 @@ CREATE TABLE basins (
 );
 
 ALTER TABLE water_bodies
-    ADD COLUMN basin_id UUID REFERENCES basins(id);
+    ADD COLUMN IF NOT EXISTS basin_id UUID REFERENCES basins(id);
 
-CREATE INDEX idx_water_bodies_basin ON water_bodies(basin_id);
+CREATE INDEX IF NOT EXISTS idx_water_bodies_basin ON water_bodies(basin_id);
 
--- Insert Oregon basins
+-- Insert Oregon basins (idempotent: re-running this migration is a no-op).
 INSERT INTO basins (name, slug, region, description) VALUES
 ('Deschutes',          'deschutes',          'oregon', 'Central Oregon''s iconic high-desert river system, anchored by the renowned Lower Deschutes and its spring-fed tributaries.'),
 ('Willamette–McKenzie','willamette-mckenzie', 'oregon', 'The Willamette Valley watershed including the technical spring-run McKenzie and the broad mid-valley Willamette.'),
 ('Rogue–Umpqua',       'rogue-umpqua',        'oregon', 'Southern Oregon''s legendary steelhead and trout rivers, including the fly-only North Umpqua and the Rogue''s Holy Water.'),
 ('Klamath',            'klamath',             'oregon', 'The high-desert Klamath River tailwater below Keno Dam, famous for its redband trout fishery.'),
 ('Mt Hood–Columbia',   'mt-hood-columbia',    'oregon', 'Columbia River Gorge tributaries draining the south slopes of Mt. Hood, offering premier steelhead and salmon runs near Portland.'),
-('Grande Ronde',       'grande-ronde-basin',  'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.');
+('Grande Ronde',       'grande-ronde',        'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.')
+ON CONFLICT (slug) DO NOTHING;
 
 -- Assign Oregon water bodies to their basins
 UPDATE water_bodies
@@ -49,7 +50,7 @@ SET basin_id = (SELECT id FROM basins WHERE slug = 'mt-hood-columbia')
 WHERE slug IN ('hood-river', 'sandy-river', 'clackamas-river');
 
 UPDATE water_bodies
-SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde-basin')
+SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde')
 WHERE slug = 'grande-ronde';
 
 -- WA/ID waters (spokane-river, nf-coeur-d-alene, st-joe-river, silver-creek,
