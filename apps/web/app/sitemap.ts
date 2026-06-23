@@ -2,18 +2,25 @@ import type { MetadataRoute } from 'next'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { isPublishable } from '@/lib/seo/gating'
 import { SITE_URL } from '@/lib/seo/metadata'
+import { TOWNS, MAX_NEAR_DISTANCE_MILES } from '@/lib/near/towns'
+import { haversineDistanceMiles } from '@/lib/near/haversine'
+import { selectCuratedPairs } from '@/lib/compare/pairs'
 
 // Regenerate the sitemap on the same cadence as the per-water pages so `lastmod`
 // tracks fresh scores without rebuilding on every request.
 export const revalidate = 1800
 
-// Lists every water with its latest score and most-recent report date so the
-// sitemap can apply the data-completeness gate and report an accurate
-// `lastModified` (freshest of scoreDate / latest report date, per issue #68).
+// Lists every water with its latest score, location, basin, and most-recent
+// report date so the sitemap can gate near/compare/water entries consistently.
 const SITEMAP_WATERS_QUERY = /* GraphQL */ `
   query SitemapWaters {
     waterBodies {
       slug
+      latitude
+      longitude
+      basin {
+        slug
+      }
       currentSignal {
         scoreDate
         compositeScore
@@ -30,6 +37,9 @@ const SITEMAP_WATERS_QUERY = /* GraphQL */ `
 
 interface SitemapWater {
   slug: string
+  latitude: number | null
+  longitude: number | null
+  basin: { slug: string } | null
   currentSignal: {
     scoreDate: string
     compositeScore: number
@@ -104,5 +114,94 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     })
 
-  return [...staticEntries, ...waterEntries]
+  const nearEntries = buildNearSitemapEntries(waters, now)
+  const compareEntries = buildCompareSitemapEntries(waters, now)
+
+  return [...staticEntries, ...waterEntries, ...nearEntries, ...compareEntries]
+}
+
+function buildNearSitemapEntries(
+  waters: SitemapWater[],
+  now: Date
+): MetadataRoute.Sitemap {
+  return TOWNS.flatMap((town) => {
+    const nearby = waters.filter((w) => {
+      if (w.latitude == null || w.longitude == null) return false
+      return (
+        haversineDistanceMiles(town.lat, town.lon, w.latitude, w.longitude) <=
+        MAX_NEAR_DISTANCE_MILES
+      )
+    })
+
+    const hasPublishable = nearby.some((w) =>
+      isPublishable({
+        signal: w.currentSignal,
+        latestReportDate: w.recentReports[0]?.reportDate ?? null,
+      })
+    )
+    if (!hasPublishable) return []
+
+    // lastmod = freshest date among publishable nearby waters.
+    const dates = nearby
+      .filter((w) =>
+        isPublishable({
+          signal: w.currentSignal,
+          latestReportDate: w.recentReports[0]?.reportDate ?? null,
+        })
+      )
+      .flatMap((w) =>
+        [w.currentSignal?.scoreDate, w.recentReports[0]?.reportDate].filter(
+          (d): d is string => d != null
+        )
+      )
+    const lastmod = dates.sort().at(-1)
+
+    return [
+      {
+        url: `${SITE_URL}/near/${town.slug}`,
+        lastModified: lastmod ? new Date(lastmod) : now,
+        changeFrequency: 'daily' as const,
+        priority: 0.6,
+      },
+    ]
+  })
+}
+
+function buildCompareSitemapEntries(
+  waters: SitemapWater[],
+  now: Date
+): MetadataRoute.Sitemap {
+  const pairs = selectCuratedPairs(waters)
+  return pairs
+    .filter(({ slugA, slugB }) => {
+      const a = waters.find((w) => w.slug === slugA)
+      const b = waters.find((w) => w.slug === slugB)
+      if (!a || !b) return false
+      return (
+        isPublishable({
+          signal: a.currentSignal,
+          latestReportDate: a.recentReports[0]?.reportDate ?? null,
+        }) &&
+        isPublishable({
+          signal: b.currentSignal,
+          latestReportDate: b.recentReports[0]?.reportDate ?? null,
+        })
+      )
+    })
+    .map(({ slugA, slugB }) => {
+      const a = waters.find((w) => w.slug === slugA)!
+      const b = waters.find((w) => w.slug === slugB)!
+      const dates = [a, b].flatMap((w) =>
+        [w.currentSignal?.scoreDate, w.recentReports[0]?.reportDate].filter(
+          (d): d is string => d != null
+        )
+      )
+      const lastmod = dates.sort().at(-1)
+      return {
+        url: `${SITE_URL}/compare/${slugA}-vs-${slugB}`,
+        lastModified: lastmod ? new Date(lastmod) : now,
+        changeFrequency: 'daily' as const,
+        priority: 0.5,
+      }
+    })
 }

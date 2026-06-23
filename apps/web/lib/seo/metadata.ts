@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { Town } from '@/lib/near/towns'
 
 /**
  * Production origin. Single source of truth for canonical + Open Graph URLs and
@@ -110,6 +111,63 @@ export function buildBasinMetadata(basin: BasinMetadataInput): Metadata {
       title,
       description,
     },
+    robots: { index: true, follow: true },
+  }
+}
+
+/**
+ * Build /near/[town] page metadata.
+ */
+export function buildNearMetadata(town: Town): Metadata {
+  const title = `Fishing Near ${town.name}, ${town.state} — Top Waters (${currentMonthYear()})`
+  const description = `Live fishing conditions for rivers and streams within 200 miles of ${town.name}, ${town.state}. Ranked by distance and today's composite score.`
+  const canonical = `${SITE_URL}/near/${town.slug}`
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title, description },
+    robots: { index: true, follow: true },
+  }
+}
+
+interface CompareMetadataInput {
+  nameA: string
+  nameB: string
+  slugA: string
+  slugB: string
+  winnerName?: string | null
+}
+
+/**
+ * Build /compare/[pair] page metadata.
+ */
+export function buildCompareMetadata(input: CompareMetadataInput): Metadata {
+  const { nameA, nameB, slugA, slugB, winnerName } = input
+  const title = `${nameA} vs. ${nameB} — Fishing Conditions Today (${currentMonthYear()})`
+  const description = winnerName
+    ? `${winnerName} is fishing better right now. Compare live conditions, flows, and scores for ${nameA} and ${nameB}, updated every 30 minutes.`
+    : `Side-by-side fishing conditions for ${nameA} and ${nameB}, updated every 30 minutes from fly shop reports and USGS gauge data.`
+  const canonical = `${SITE_URL}/compare/${slugA}-vs-${slugB}`
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title, description },
     robots: { index: true, follow: true },
   }
 }
