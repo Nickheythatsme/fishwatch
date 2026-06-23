@@ -14,6 +14,7 @@ import type { Crumb } from '@/components/shell/Breadcrumbs'
 import type { Hatch } from '@/components/reports/HatchTable'
 import type { SourceCredit } from '@/components/reports/source-utils'
 import { scoreToLabel } from '@/components/signals/score-utils'
+import { formatDate } from './citableLede'
 
 /**
  * Typed schema.org (JSON-LD) builders for the per-water page.
@@ -26,31 +27,6 @@ import { scoreToLabel } from '@/components/signals/score-utils'
  */
 
 const ORGANIZATION_NAME = 'Score.Fish'
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-
-function humanDate(dateStr: string): string {
-  const parts = dateStr.split('-')
-  if (parts.length !== 3) return dateStr
-  const m = parseInt(parts[1], 10)
-  const d = parseInt(parts[2], 10)
-  const y = parseInt(parts[0], 10)
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return dateStr
-  return `${MONTHS[m - 1]} ${d}, ${y}`
-}
 
 function waterUrl(slug: string, siteUrl: string): string {
   return `${siteUrl}/water/${slug}`
@@ -242,7 +218,7 @@ export function buildFaqPage(input: FaqInput): FAQPage | null {
     const label = scoreToLabel(input.signal.compositeScore)
     const score = `${label} (${input.signal.compositeScore.toFixed(1)}/10)`
     const dateSuffix = input.dateModified
-      ? ` (as of ${humanDate(input.dateModified)})`
+      ? ` (as of ${formatDate(input.dateModified)})`
       : ''
     const answer = input.signal.summary
       ? `${input.signal.summary} Current conditions rate as ${score}${dateSuffix}.`
