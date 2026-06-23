@@ -155,7 +155,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                   marginTop: 6,
                 }}
               >
-                {scoreLabel(score)} · out of 10
+                {`${scoreLabel(score)} · out of 10`}
               </div>
             </div>
           )}
