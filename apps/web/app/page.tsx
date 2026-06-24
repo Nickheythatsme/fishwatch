@@ -4,6 +4,8 @@ import { DashboardView } from '@/components/intelligence/DashboardView'
 import type { RegionConditions } from '@/components/intelligence/LocalConditionsPanel'
 import type { SortOption } from '@/components/intelligence/IntelligencePanel'
 import { SITE_URL } from '@/lib/seo/metadata'
+import { isPublishable } from '@/lib/seo/gating'
+import { scoreToLabel } from '@/components/signals/score-utils'
 import {
   pickRegion,
   VALID_SORTS,
@@ -41,6 +43,9 @@ const DASHBOARD_QUERY = /* GraphQL */ `
         topSection
       }
       currentFlow
+      recentReports(limit: 1) {
+        reportDate
+      }
     }
   }
 `
@@ -57,8 +62,25 @@ const REGION_CONDITIONS_QUERY = /* GraphQL */ `
   }
 `
 
+// The homepage query fetches everything `DashboardWaterBody` needs for the map
+// island plus the latest report date, which the SEO gate (`isPublishable`)
+// requires to decide whether a water is index-worthy. `recentReports` is stripped
+// before the data crosses into the client island below.
+interface QueryWaterBody extends DashboardWaterBody {
+  recentReports: Array<{ reportDate: string | null }>
+}
+
 interface DashboardData {
-  waterBodies: DashboardWaterBody[]
+  waterBodies: QueryWaterBody[]
+}
+
+// A crawlable water link rendered in the static HTML (outside the Leaflet
+// client island), gated for parity with sitemap.ts.
+interface PublishableWaterLink {
+  id: string
+  name: string
+  slug: string
+  compositeScore: number
 }
 
 interface RegionConditionsData {
@@ -95,11 +117,33 @@ export default async function HomePage({
   // graphql-js builds result objects with a null prototype, which React refuses
   // to serialize across the Server→Client boundary. DashboardView is a client
   // island, so copy each water body (and its nested signal) into plain object
-  // literals before handing them over.
-  const waterBodies: DashboardWaterBody[] = data.waterBodies.map((wb) => ({
-    ...wb,
-    currentSignal: wb.currentSignal ? { ...wb.currentSignal } : null,
-  }))
+  // literals before handing them over. `recentReports` is SSR-only gating data,
+  // so destructure it out and keep the client payload unchanged.
+  const waterBodies: DashboardWaterBody[] = data.waterBodies.map(
+    ({ recentReports: _recentReports, ...wb }) => ({
+      ...wb,
+      currentSignal: wb.currentSignal ? { ...wb.currentSignal } : null,
+    })
+  )
+
+  // Crawlable, server-rendered water links. Apply the exact same publish gate
+  // as sitemap.ts (`isPublishable`) so the static HTML never advertises a water
+  // the sitemap excludes. `isPublishable` already rejects null / no-data
+  // signals, so `currentSignal` is non-null for everything that passes.
+  const publishableWaters: PublishableWaterLink[] = data.waterBodies
+    .filter((wb) =>
+      isPublishable({
+        signal: wb.currentSignal,
+        latestReportDate: wb.recentReports[0]?.reportDate ?? null,
+      })
+    )
+    .map((wb) => ({
+      id: wb.id,
+      name: wb.name,
+      slug: wb.slug,
+      compositeScore: wb.currentSignal!.compositeScore,
+    }))
+    .sort((a, b) => b.compositeScore - a.compositeScore)
 
   const region = pickRegion(waterBodies)
 
@@ -119,11 +163,43 @@ export default async function HomePage({
   }
 
   return (
-    <DashboardView
-      waterBodies={waterBodies}
-      region={region}
-      regionConditions={regionConditions}
-      sortBy={sortBy}
-    />
+    <>
+      <DashboardView
+        waterBodies={waterBodies}
+        region={region}
+        regionConditions={regionConditions}
+        sortBy={sortBy}
+      />
+      {/*
+        Server-rendered, crawlable text + water links. The dashboard above is a
+        Leaflet client island, so a no-JS crawler sees no <h1> and no anchors
+        without this block (issue #124). It lives outside the island and is
+        visually hidden (`sr-only` keeps it in the DOM and accessible to both
+        crawlers and screen readers — it is NOT display:none) so it provides the
+        SEO/accessibility surface without duplicating the interactive map UI.
+      */}
+      <section aria-labelledby="home-heading" className="sr-only">
+        <h1 id="home-heading">Pacific Northwest Fishing Conditions &amp; River Reports</h1>
+        <p>
+          Score.Fish combines fly shop reports with live USGS gauge data into a single
+          composite fishing score for rivers and streams across the Pacific Northwest.
+          Browse current conditions for every water with a recent report below.
+        </p>
+        {publishableWaters.length > 0 && (
+          <nav aria-label="Waters with current fishing reports">
+            <ul>
+              {publishableWaters.map((wb) => (
+                <li key={wb.id}>
+                  <a href={`/water/${wb.slug}`}>
+                    {wb.name} — {scoreToLabel(wb.compositeScore)} (
+                    {wb.compositeScore.toFixed(1)}/10)
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+      </section>
+    </>
   )
 }
