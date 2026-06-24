@@ -28,9 +28,17 @@ Oregon (beyond Central):
 - Hood River (Columbia Gorge, steelhead)
 - Rogue River (Southern Oregon, Holy Water section)
 - North Umpqua River (fly-only steelhead section)
+- Umpqua River (mainstem below the forks near Elkton, summer smallmouth bass)
 - Klamath River (below Keno Dam, redband trout)
 - Sandy River (near Portland, steelhead)
 - Clackamas River (near Portland, steelhead)
+- Owyhee River (high-desert tailwater below Owyhee Dam, trophy brown trout)
+
+Oregon Coast:
+- Wilson River (Coast Range near Tillamook, winter steelhead and salmon)
+- Nestucca River (north coast near Beaver, winter steelhead and spring chinook)
+- Siletz River (central coast, summer and winter steelhead)
+- Alsea River (central coast near Waldport, winter steelhead and salmon)
 
 Washington / Idaho:
 - Spokane River (through Spokane, WA)
