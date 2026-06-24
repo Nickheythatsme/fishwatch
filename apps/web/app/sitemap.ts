@@ -114,10 +114,63 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     })
 
+  const basinEntries = buildBasinSitemapEntries(waters, now)
   const nearEntries = buildNearSitemapEntries(waters, now)
   const compareEntries = buildCompareSitemapEntries(waters, now)
 
-  return [...staticEntries, ...waterEntries, ...nearEntries, ...compareEntries]
+  return [
+    ...staticEntries,
+    ...waterEntries,
+    ...basinEntries,
+    ...nearEntries,
+    ...compareEntries,
+  ]
+}
+
+function buildBasinSitemapEntries(
+  waters: SitemapWater[],
+  now: Date
+): MetadataRoute.Sitemap {
+  // Group the already-fetched waters by basin slug so we avoid a second
+  // round-trip — a basin is publishable iff any of its member waters is.
+  const byBasin = new Map<string, SitemapWater[]>()
+  for (const w of waters) {
+    const basinSlug = w.basin?.slug
+    if (!basinSlug) continue
+    const members = byBasin.get(basinSlug)
+    if (members) {
+      members.push(w)
+    } else {
+      byBasin.set(basinSlug, [w])
+    }
+  }
+
+  return Array.from(byBasin.entries()).flatMap(([basinSlug, members]) => {
+    const publishableMembers = members.filter((w) =>
+      isPublishable({
+        signal: w.currentSignal,
+        latestReportDate: w.recentReports[0]?.reportDate ?? null,
+      })
+    )
+    if (publishableMembers.length === 0) return []
+
+    // lastmod = freshest date among the basin's publishable member waters.
+    const dates = publishableMembers.flatMap((w) =>
+      [w.currentSignal?.scoreDate, w.recentReports[0]?.reportDate].filter(
+        (d): d is string => d != null
+      )
+    )
+    const lastmod = dates.sort().at(-1)
+
+    return [
+      {
+        url: `${SITE_URL}/basin/${basinSlug}`,
+        lastModified: lastmod ? new Date(lastmod) : now,
+        changeFrequency: 'daily' as const,
+        priority: 0.6,
+      },
+    ]
+  })
 }
 
 function buildNearSitemapEntries(
