@@ -83,6 +83,13 @@ USGS_STATIONS = {
     "12411000": "nf-coeur-d-alene",
     "12414500": "st-joe-river",
     "13333000": "grande-ronde",
+    # Oregon Coast Range + Owyhee tailwater (issue #126)
+    "14301500": "wilson-river",
+    "14303600": "nestucca-river",
+    "14305500": "siletz-river",
+    "14306500": "alsea-river",
+    "14321000": "umpqua-river",
+    "13183000": "owyhee-river",
     # Idaho (Fly Fish Food / Silver Creek Outfitters)
     "13150430": "silver-creek",
     "13135500": "big-wood-river",
@@ -123,6 +130,15 @@ IDEAL_FLOW_RANGES = {
     "nf-coeur-d-alene": (200, 800),
     "st-joe-river": (50, 200),
     "grande-ronde": (700, 2000),
+    # Oregon Coast Range + Owyhee tailwater (issue #126).
+    # Estimates: no verified ideal ranges yet — coastal steelhead values scaled
+    # from comparable mid-size coastal rivers; tweak once we have real data.
+    "wilson-river": (800, 2500),  # estimate — mid-size coastal winter steelhead
+    "nestucca-river": (600, 2000),  # estimate — smaller coastal steelhead/chinook
+    "siletz-river": (800, 2500),  # estimate — mirrors Wilson (similar size)
+    "alsea-river": (700, 2200),  # estimate — mid-size central-coast river
+    "umpqua-river": (1500, 4000),  # estimate — large mainstem, scaled like McKenzie
+    "owyhee-river": (50, 150),  # estimate — desert tailwater, mirrors Big Lost/Crooked
     # Idaho
     "silver-creek": (80, 200),
     "big-wood-river": (100, 500),
