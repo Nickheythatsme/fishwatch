@@ -187,10 +187,19 @@ export default async function HomePage({
         </p>
         {publishableWaters.length > 0 && (
           <nav aria-label="Waters with current fishing reports">
+            {/*
+              tabIndex={-1}: this is a visually-hidden, crawler/screen-reader
+              surface. Without it the clipped (`sr-only`) anchors stay in the
+              sequential tab order, giving sighted keyboard users invisible focus
+              stops with no visible focus ring (WCAG 2.4.7). Removing them from
+              tab order keeps the links crawlable and reachable via a screen
+              reader's virtual cursor / link list, while the same water links
+              remain keyboard-operable in the visible DashboardView map above.
+            */}
             <ul>
               {publishableWaters.map((wb) => (
                 <li key={wb.id}>
-                  <a href={`/water/${wb.slug}`}>
+                  <a href={`/water/${wb.slug}`} tabIndex={-1}>
                     {wb.name} — {scoreToLabel(wb.compositeScore)} (
                     {wb.compositeScore.toFixed(1)}/10)
                   </a>
