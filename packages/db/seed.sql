@@ -5,7 +5,9 @@ INSERT INTO basins (name, slug, region, description) VALUES
 ('Rogue–Umpqua',       'rogue-umpqua',        'oregon', 'Southern Oregon''s legendary steelhead and trout rivers, including the fly-only North Umpqua and the Rogue''s Holy Water.'),
 ('Klamath',            'klamath',             'oregon', 'The high-desert Klamath River tailwater below Keno Dam, famous for its redband trout fishery.'),
 ('Mt Hood–Columbia',   'mt-hood-columbia',    'oregon', 'Columbia River Gorge tributaries draining the south slopes of Mt. Hood, offering premier steelhead and salmon runs near Portland.'),
-('Grande Ronde',       'grande-ronde',        'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.');
+('Grande Ronde',       'grande-ronde',        'oregon', 'Remote OR/WA border canyon offering prime steelhead and trout fishing through roadless wilderness.'),
+('Oregon Coast',       'oregon-coast',        'oregon', 'Coast Range rivers draining the Pacific slope west of the Willamette Valley, prized for winter steelhead, sea-run cutthroat, and fall salmon on the Wilson, Nestucca, Siletz, and Alsea.'),
+('Owyhee',             'owyhee',              'oregon', 'Remote high-desert canyon tailwater below Owyhee Dam in southeastern Oregon, renowned for its trophy brown trout fishery.');
 
 -- Central Oregon rivers and lakes
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
@@ -32,6 +34,15 @@ INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_
 ('Sandy River', 'sandy-river', 'oregon', 45.4490, -122.2450, ARRAY['14142500'], ARRAY['winter steelhead', 'summer steelhead', 'coho salmon', 'chinook salmon', 'rainbow trout'], 'Free-flowing glacial river near Portland with strong steelhead runs. Wade fishing from Dodge Park to Oxbow Park.'),
 ('Clackamas River', 'clackamas-river', 'oregon', 45.3000, -122.3540, ARRAY['14210000'], ARRAY['winter steelhead', 'summer steelhead', 'spring chinook salmon', 'coho salmon', 'rainbow trout', 'cutthroat trout'], 'Broad river near Portland favored by spey casters. Ledgy slots and boulder runs.'),
 ('Grande Ronde River', 'grande-ronde', 'oregon', 45.9457, -117.4510, ARRAY['13333000'], ARRAY['steelhead', 'rainbow trout', 'smallmouth bass', 'whitefish'], 'OR/WA border canyon. Prime steelhead water around 900-1400 CFS.');
+
+-- Oregon Coast Range rivers and the Owyhee high-desert tailwater (issue #126)
+INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
+('Wilson River', 'wilson-river', 'oregon', 45.4759, -123.7251, ARRAY['14301500'], ARRAY['winter steelhead', 'summer steelhead', 'chinook salmon', 'coho salmon', 'cutthroat trout'], 'Coast Range river near Tillamook with strong winter steelhead and fall salmon runs. Roadside drift-boat and bank access along Highway 6.'),
+('Nestucca River', 'nestucca-river', 'oregon', 45.2665, -123.8471, ARRAY['14303600'], ARRAY['winter steelhead', 'spring chinook salmon', 'coho salmon', 'cutthroat trout'], 'Productive north-coast river near Beaver known for hatchery and wild winter steelhead plus a strong spring chinook run.'),
+('Siletz River', 'siletz-river', 'oregon', 44.7151, -123.8873, ARRAY['14305500'], ARRAY['summer steelhead', 'winter steelhead', 'chinook salmon', 'cutthroat trout'], 'Central-coast river holding one of the coast''s few summer steelhead runs along with a deep wild winter run.'),
+('Alsea River', 'alsea-river', 'oregon', 44.3860, -123.8318, ARRAY['14306500'], ARRAY['winter steelhead', 'chinook salmon', 'coho salmon', 'cutthroat trout'], 'Popular central-coast river near Waldport with bank and drift-boat access for winter steelhead and fall salmon.'),
+('Umpqua River', 'umpqua-river', 'oregon', 43.5860, -123.5554, ARRAY['14321000'], ARRAY['smallmouth bass', 'summer steelhead', 'chinook salmon', 'cutthroat trout'], 'Mainstem below the forks near Elkton, famous for a prolific summer smallmouth bass fishery alongside steelhead and salmon runs.'),
+('Owyhee River', 'owyhee-river', 'oregon', 43.6544, -117.2558, ARRAY['13183000'], ARRAY['brown trout', 'rainbow trout'], 'Remote high-desert tailwater below Owyhee Dam in southeastern Oregon. Trophy brown trout fishery with technical sight fishing.');
 
 -- Washington / Idaho rivers (Silver Bow coverage)
 INSERT INTO water_bodies (name, slug, region, latitude, longitude, usgs_station_ids, typical_species, description) VALUES
@@ -68,7 +79,7 @@ WHERE slug IN ('mckenzie-river', 'willamette-river');
 
 UPDATE water_bodies
 SET basin_id = (SELECT id FROM basins WHERE slug = 'rogue-umpqua')
-WHERE slug IN ('rogue-river', 'north-umpqua-river');
+WHERE slug IN ('rogue-river', 'north-umpqua-river', 'umpqua-river');
 
 UPDATE water_bodies
 SET basin_id = (SELECT id FROM basins WHERE slug = 'klamath')
@@ -81,6 +92,14 @@ WHERE slug IN ('hood-river', 'sandy-river', 'clackamas-river');
 UPDATE water_bodies
 SET basin_id = (SELECT id FROM basins WHERE slug = 'grande-ronde')
 WHERE slug = 'grande-ronde';
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'oregon-coast')
+WHERE slug IN ('wilson-river', 'nestucca-river', 'siletz-river', 'alsea-river');
+
+UPDATE water_bodies
+SET basin_id = (SELECT id FROM basins WHERE slug = 'owyhee')
+WHERE slug = 'owyhee-river';
 
 INSERT INTO species (name, common_aliases) VALUES
 ('rainbow trout', ARRAY['rainbow', 'bows', 'redsides', 'redside', 'bow', 'deschutes redside']),
