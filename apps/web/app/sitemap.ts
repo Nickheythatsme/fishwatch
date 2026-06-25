@@ -6,9 +6,16 @@ import { TOWNS, MAX_NEAR_DISTANCE_MILES } from '@/lib/near/towns'
 import { haversineDistanceMiles } from '@/lib/near/haversine'
 import { selectCuratedPairs } from '@/lib/compare/pairs'
 
-// Regenerate the sitemap on the same cadence as the per-water pages so `lastmod`
-// tracks fresh scores without rebuilding on every request.
-export const revalidate = 1800
+// Render the sitemap dynamically (live DB read) on every request instead of
+// caching it as a statically-prerendered ISR route. As an ISR route the sitemap
+// froze across code-unchanged deploys: a data-only pipeline run (new scores +
+// reports making a water publishable) did not refresh it, because the build
+// reused the cached prerender of this unchanged route and the edge kept serving
+// it as a HIT without revalidating — so newly-publishable waters never reached
+// the sitemap even though their pages already flipped to index. `ssrQuery` runs
+// the GraphQL schema in-process (no HTTP hop) and crawlers fetch this rarely, so
+// rendering live per request is cheap.
+export const dynamic = 'force-dynamic'
 
 // Lists every water with its latest score, location, basin, and most-recent
 // report date so the sitemap can gate near/compare/water entries consistently.
