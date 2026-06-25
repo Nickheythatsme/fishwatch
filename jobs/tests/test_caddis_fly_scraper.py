@@ -32,6 +32,7 @@ class _FakeAsyncClient:
     def __init__(self, text: str):
         self._text = text
         self.requested_url: str | None = None
+        self.requested_headers: dict[str, str] | None = None
 
     async def __aenter__(self) -> "_FakeAsyncClient":
         return self
@@ -39,8 +40,9 @@ class _FakeAsyncClient:
     async def __aexit__(self, *exc) -> bool:
         return False
 
-    async def get(self, url: str, timeout: int | None = None) -> _FakeResponse:
+    async def get(self, url: str, timeout: int | None = None, headers: dict[str, str] | None = None) -> _FakeResponse:
         self.requested_url = url
+        self.requested_headers = headers
         return _FakeResponse(self._text)
 
 
@@ -71,6 +73,9 @@ def test_caddis_fly_discovers_links_from_rss_and_filters_travel_posts(monkeypatc
     links = asyncio.run(scraper.discover_posts(AsyncMock()))
 
     assert fake_client.requested_url == caddis_fly._RSS_URL
+    # Browser-like headers are sent so the WAF doesn't bounce the request with 415 (issue #133).
+    assert fake_client.requested_headers == caddis_fly._RSS_HEADERS
+    assert "Mozilla/5.0" in fake_client.requested_headers["User-Agent"]
     # Channel <link> ignored, duplicate collapsed, christmas-island travel post filtered.
     assert links == [
         "https://oregonflyfishingblog.com/2026/06/06/lower-deschutes-report/",
