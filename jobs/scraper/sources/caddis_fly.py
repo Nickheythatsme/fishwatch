@@ -9,6 +9,17 @@ from .base import BaseScraper
 _SKIP_KEYWORDS = ["christmas-island", "alaska", "jungle", "belize", "bahamas", "mexico", "patagonia", "chile"]
 _INDEX_READY_SELECTOR = "#content, #main, body"
 _RSS_URL = "https://oregonflyfishingblog.com/category/fishing-reports/feed/"
+# The site's bot-detection / WAF rejects the default httpx request (python-httpx UA,
+# no Accept) with 415 Unsupported Media Type (issue #133). Send a browser-like
+# User-Agent and an Accept header that explicitly requests RSS/XML so the feed
+# endpoint serves the document instead of bouncing the request.
+_RSS_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/rss+xml, application/xml, text/xml; q=0.9, */*; q=0.8",
+}
 
 
 class CaddisFlyScraper(BaseScraper):
@@ -38,7 +49,7 @@ class CaddisFlyScraper(BaseScraper):
     async def discover_posts(self, page: Page) -> list[str]:
         """Discover post URLs from the WordPress RSS feed (bot-detection-proof)."""
         async with httpx.AsyncClient() as client:
-            resp = await client.get(_RSS_URL, timeout=30)
+            resp = await client.get(_RSS_URL, timeout=30, headers=_RSS_HEADERS)
             resp.raise_for_status()
             root = ET.fromstring(resp.text)
         # Only <item> links are posts; the channel-level <link> is excluded by iter("item").
