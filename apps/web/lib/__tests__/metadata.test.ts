@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildWaterMetadata, buildLeaderboardMetadata, SITE_URL } from '@/lib/seo/metadata'
+import {
+  buildWaterMetadata,
+  buildLeaderboardMetadata,
+  buildReportsMetadata,
+  SITE_URL,
+} from '@/lib/seo/metadata'
 
 const base = {
   name: 'Crooked River',
@@ -110,5 +115,42 @@ describe('buildLeaderboardMetadata', () => {
   it('describes Pacific Northwest waters consistently with the title geography', () => {
     const meta = buildLeaderboardMetadata()
     expect(meta.description).toContain('Pacific Northwest')
+  })
+})
+
+describe('buildReportsMetadata', () => {
+  it('builds a freshness-stamped Pacific Northwest title', () => {
+    const meta = buildReportsMetadata()
+    expect(meta.title).toMatch(/^Latest Pacific Northwest Fishing Reports — /)
+    // Month + 4-digit year (e.g. "June 2026") makes it read as current.
+    expect(String(meta.title)).toMatch(/[A-Z][a-z]+ \d{4}$/)
+  })
+
+  it('sets a description so Google does not scrape nav/filter chrome into the snippet', () => {
+    const meta = buildReportsMetadata()
+    expect(meta.description).toBeTruthy()
+    expect(meta.description).toContain('Pacific Northwest')
+    // Keep it within the range Google reliably renders.
+    expect((meta.description ?? '').length).toBeLessThanOrEqual(160)
+  })
+
+  it('uses /reports as canonical and OG url', () => {
+    const meta = buildReportsMetadata()
+    const canonical = `${SITE_URL}/reports`
+    expect(meta.alternates?.canonical).toBe(canonical)
+    expect(meta.openGraph?.url).toBe(canonical)
+  })
+
+  it('mirrors title/description into OG and Twitter', () => {
+    const meta = buildReportsMetadata()
+    expect(meta.openGraph?.title).toBe(meta.title)
+    expect(meta.openGraph?.description).toBe(meta.description)
+    expect(meta.twitter?.title).toBe(meta.title)
+    expect(meta.twitter?.description).toBe(meta.description)
+  })
+
+  it('is indexable', () => {
+    const meta = buildReportsMetadata()
+    expect(meta.robots).toEqual({ index: true, follow: true })
   })
 })
