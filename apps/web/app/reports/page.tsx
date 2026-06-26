@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ssrQuery } from '@/lib/graphql/execute'
 import { ReportCard } from '@/components/reports/ReportCard'
-import { SITE_URL } from '@/lib/seo/metadata'
+import { buildReportsMetadata } from '@/lib/seo/metadata'
 import {
   activeFilterCount,
   matchesReportFilters,
@@ -13,10 +13,13 @@ import {
 // of the server-rendered pages.
 export const revalidate = 1800
 
-// Self-referencing canonical so the report feed isn't flagged as a duplicate
-// (see issue #115).
-export const metadata: Metadata = {
-  alternates: { canonical: `${SITE_URL}/reports` },
+// Title/description/canonical for the feed. A self-referencing canonical keeps
+// the report feed from being flagged as a duplicate (see issue #115); the
+// explicit title + description stop Google from scraping nav/filter chrome into
+// the search snippet. Built per request so the title's month/year stays current
+// across ISR passes.
+export function generateMetadata(): Metadata {
+  return buildReportsMetadata()
 }
 
 const REPORTS_QUERY = /* GraphQL */ `
