@@ -85,6 +85,12 @@ describe('buildWaterPageGraph — full data', () => {
     expect(byName['Fishing conditions score'].value).toBe(7.4)
   })
 
+  it('marks the Dataset as free and carries a license URL', () => {
+    const [ds] = nodesOfType(graph!, 'Dataset')
+    expect(ds.isAccessibleForFree).toBe(true)
+    expect(ds.license).toBe('https://creativecommons.org/licenses/by/4.0/')
+  })
+
   it('includes a FAQPage with all three answerable questions', () => {
     const [faq] = nodesOfType(graph!, 'FAQPage')
     const questions = faq.mainEntity as Array<{ name: string }>

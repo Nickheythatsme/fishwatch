@@ -29,6 +29,11 @@ import { formatDate } from './citableLede'
 
 const ORGANIZATION_NAME = 'Score.Fish'
 
+// License under which the conditions Dataset is distributed. Google's Dataset
+// structured data flags a missing `license` as a (non-critical) issue; the data
+// is published for free (see `isAccessibleForFree`) under CC BY 4.0.
+const DATASET_LICENSE = 'https://creativecommons.org/licenses/by/4.0/'
+
 function waterUrl(slug: string, siteUrl: string): string {
   return `${siteUrl}/water/${slug}`
 }
@@ -167,6 +172,7 @@ export function buildConditionsDataset(
     temporalCoverage: `${earliest}/${latest}`,
     dateModified: latest,
     isAccessibleForFree: true,
+    license: DATASET_LICENSE,
     creator: { '@type': 'Organization', name: ORGANIZATION_NAME, url: siteUrl },
   }
 }
