@@ -4,6 +4,8 @@ import { DashboardView } from '@/components/intelligence/DashboardView'
 import type { RegionConditions } from '@/components/intelligence/LocalConditionsPanel'
 import type { SortOption } from '@/components/intelligence/IntelligencePanel'
 import { SITE_URL } from '@/lib/seo/metadata'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildHomePageGraph } from '@/lib/seo/jsonld'
 import { isPublishable } from '@/lib/seo/gating'
 import { scoreToLabel } from '@/components/signals/score-utils'
 import {
@@ -162,8 +164,13 @@ export default async function HomePage({
     regionConditions = null
   }
 
+  // Organization + WebSite structured data for the homepage. `buildHomePageGraph`
+  // always returns a graph here, but guard for the Graph | null contract.
+  const jsonLdGraph = buildHomePageGraph(SITE_URL)
+
   return (
     <>
+      {jsonLdGraph && <JsonLd data={jsonLdGraph} />}
       <DashboardView
         waterBodies={waterBodies}
         region={region}
