@@ -41,6 +41,12 @@ FORUM_SOURCE = "pnw_fly_fishing"
 # kept local so the refresh job doesn't import the scorer package.
 REFRESH_LOOKBACK_DAYS = 21
 
+# A few transient per-thread errors (404s, timeouts) are contained and non-blocking.
+# But when a large share of threads fail it's a systemic problem (forum layout
+# change, WAF block, outage) — surface it (non-zero exit + the notify job) instead
+# of silently refreshing nothing.
+SYSTEMIC_FAILURE_RATIO = 0.5
+
 # A per-post permalink looks like ".../threads/slug.id/post-NNN"; strip the anchor to
 # get the thread URL the browser should load.
 _POST_ANCHOR_RE = re.compile(r"/post-\d+/?$")
@@ -77,6 +83,18 @@ def classify_posts(known: dict[str, int], records: list[dict]) -> tuple[list[dic
         else:
             inserts.append(record)
     return updates, inserts
+
+
+def is_systemic_failure(total_threads: int, failures: int) -> bool:
+    """Whether the share of failed threads looks systemic (block + alert) vs transient.
+
+    False when there was nothing to do (no threads) or only a minority failed
+    (contained, non-blocking). True when at least SYSTEMIC_FAILURE_RATIO of the
+    batch failed — including the all-failed case.
+    """
+    if total_threads == 0 or failures == 0:
+        return False
+    return failures / total_threads >= SYSTEMIC_FAILURE_RATIO
 
 
 def _load_known_reactions(cur) -> dict[str, int]:
@@ -216,11 +234,18 @@ async def main() -> int:
             f"Engagement refresh complete. {updated} updated, "
             f"{inserted} new replies ingested, {failures} thread failure(s)."
         )
-        # Per-thread failures are contained (rolled back to their savepoint) and the
-        # successful updates/inserts are committed above. Exit 0 so the downstream
-        # extract -> score jobs still run; a transient single-thread error (404/
-        # timeout) must not skip extraction of newly-ingested replies and re-scoring.
-        # Only the fatal path below blocks the pipeline.
+        # A minority of contained per-thread failures (rolled back to their savepoint)
+        # is non-blocking — exit 0 so the downstream extract -> score jobs still run on
+        # the committed work. But when failures are widespread it's a systemic problem
+        # (forum layout change, WAF block, outage), so fail the job: that blocks the
+        # downstream jobs for this run and triggers the notify alert, instead of
+        # silently refreshing nothing.
+        if is_systemic_failure(len(thread_urls), failures):
+            logger.error(
+                f"Systemic refresh failure: {failures}/{len(thread_urls)} threads failed "
+                "(likely a forum layout/WAF change or outage) — failing the job."
+            )
+            return 1
         return 0
     except Exception:
         logger.exception("Fatal error in engagement refresh job")
