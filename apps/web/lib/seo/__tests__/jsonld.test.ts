@@ -4,6 +4,7 @@ import {
   buildWaterPageGraph,
   buildFaqPage,
   buildItemList,
+  buildHomePageGraph,
   type WaterPageGraphInput,
   type FaqInput,
   type ItemListEntry,
@@ -200,6 +201,46 @@ describe('buildItemList', () => {
       'Crooked River',
       'Metolius River',
     ])
+  })
+})
+
+describe('buildHomePageGraph', () => {
+  const graph = buildHomePageGraph(SITE_URL)
+
+  it('emits a non-null schema.org @graph', () => {
+    expect(graph).not.toBeNull()
+    expect(graph?.['@context']).toBe('https://schema.org')
+    expect(Array.isArray(graph?.['@graph'])).toBe(true)
+  })
+
+  it('includes exactly one Organization node (name, url, logo)', () => {
+    const orgs = nodesOfType(graph!, 'Organization')
+    expect(orgs).toHaveLength(1)
+    const [org] = orgs
+    expect(org.name).toBe('Score.Fish')
+    expect(org.url).toBe(SITE_URL)
+    expect(org.logo).toBeDefined()
+    expect((org.logo as { url: string }).url).toBe(`${SITE_URL}/web-app-manifest-512x512.png`)
+  })
+
+  it('includes exactly one WebSite node (name, url)', () => {
+    const sites = nodesOfType(graph!, 'WebSite')
+    expect(sites).toHaveLength(1)
+    const [site] = sites
+    expect(site.name).toBe('Score.Fish')
+    expect(site.url).toBe(SITE_URL)
+  })
+
+  it('omits potentialAction on the WebSite (no SearchAction)', () => {
+    const [site] = nodesOfType(graph!, 'WebSite')
+    expect(site.potentialAction).toBeUndefined()
+  })
+
+  it('has the WebSite publisher reference the Organization @id', () => {
+    const [org] = nodesOfType(graph!, 'Organization')
+    const [site] = nodesOfType(graph!, 'WebSite')
+    expect(org['@id']).toBeDefined()
+    expect((site.publisher as { '@id': string })['@id']).toBe(org['@id'])
   })
 })
 

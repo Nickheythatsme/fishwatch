@@ -7,9 +7,11 @@ import type {
   ItemList,
   ListItem,
   LocalBusiness,
+  Organization,
   PropertyValue,
   Question,
   Thing,
+  WebSite,
 } from 'schema-dts'
 import type { Crumb } from '@/components/shell/Breadcrumbs'
 import type { Hatch } from '@/components/reports/HatchTable'
@@ -352,6 +354,57 @@ export function buildItemList(
       url: `${siteUrl}/water/${entry.slug}`,
     })),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Homepage — Organization + WebSite
+// ---------------------------------------------------------------------------
+
+/**
+ * `Organization` node for the site publisher. Carries a stable `@id`
+ * (`${siteUrl}/#organization`) so the `WebSite` node can reference it as
+ * `publisher` rather than duplicating the org inline. The `logo` points at the
+ * existing 512×512 manifest icon in `public/`. No `sameAs` is emitted — there
+ * are no known/verified social profiles to link.
+ */
+export function buildOrganization(siteUrl: string): Organization {
+  return {
+    '@type': 'Organization',
+    '@id': `${siteUrl}/#organization`,
+    name: ORGANIZATION_NAME,
+    url: siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${siteUrl}/web-app-manifest-512x512.png`,
+    },
+  }
+}
+
+/**
+ * `WebSite` node for the homepage, referencing the `Organization` as its
+ * `publisher` via `@id`. No `potentialAction` (sitelinks SearchAction) is
+ * emitted: Google requires the SearchAction target to be a working search
+ * endpoint, and this app has no search route or `?q=` handling, so fabricating
+ * one would point at a dead URL.
+ */
+export function buildWebSite(siteUrl: string): WebSite {
+  return {
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    name: ORGANIZATION_NAME,
+    url: siteUrl,
+    publisher: { '@id': `${siteUrl}/#organization` },
+  }
+}
+
+/**
+ * Top-level orchestrator for the homepage graph: assembles the `Organization`
+ * and `WebSite` nodes into a single `@graph`, mirroring `buildWaterPageGraph`.
+ * Returns `null` only if every node is empty (never, in practice — both nodes
+ * are always produced).
+ */
+export function buildHomePageGraph(siteUrl: string): Graph | null {
+  return assembleGraph([buildOrganization(siteUrl), buildWebSite(siteUrl)])
 }
 
 // ---------------------------------------------------------------------------
