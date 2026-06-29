@@ -216,7 +216,12 @@ async def main() -> int:
             f"Engagement refresh complete. {updated} updated, "
             f"{inserted} new replies ingested, {failures} thread failure(s)."
         )
-        return failures
+        # Per-thread failures are contained (rolled back to their savepoint) and the
+        # successful updates/inserts are committed above. Exit 0 so the downstream
+        # extract -> score jobs still run; a transient single-thread error (404/
+        # timeout) must not skip extraction of newly-ingested replies and re-scoring.
+        # Only the fatal path below blocks the pipeline.
+        return 0
     except Exception:
         logger.exception("Fatal error in engagement refresh job")
         conn.rollback()
@@ -231,4 +236,4 @@ def run() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(1 if run() else 0)
+    sys.exit(run())
