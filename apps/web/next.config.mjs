@@ -4,19 +4,21 @@ const isDev = process.env.NODE_ENV !== 'production'
 
 // Content Security Policy. Tiles load from Mapbox + OpenStreetMap; data/auth
 // from Supabase. Google Analytics (gtag.js) loads from googletagmanager.com and
-// beacons to google-analytics.com. Microsoft Clarity bootstraps an external
-// tag from www.clarity.ms and beacons session data to *.clarity.ms. Next.js
-// injects inline bootstrap scripts, so 'unsafe-inline' is required for
-// script-src; dev additionally needs 'unsafe-eval' for HMR.
+// beacons to google-analytics.com. Microsoft Clarity bootstraps from
+// www.clarity.ms, which in turn loads the tracker from scripts.clarity.ms and
+// beacons via a c.clarity.ms image pixel — so *.clarity.ms must be allowed in
+// script-src, connect-src, and img-src. Next.js injects inline bootstrap
+// scripts, so 'unsafe-inline' is required for script-src; dev additionally
+// needs 'unsafe-eval' for HMR.
 const csp = [
   `default-src 'self'`,
   `base-uri 'self'`,
   `form-action 'self'`,
   `frame-ancestors 'none'`,
   `object-src 'none'`,
-  `img-src 'self' data: blob: https://api.mapbox.com https://*.tile.openstreetmap.org`,
-  `connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.google-analytics.com https://*.analytics.google.com https://www.clarity.ms https://*.clarity.ms`,
-  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms${isDev ? " 'unsafe-eval'" : ''}`,
+  `img-src 'self' data: blob: https://api.mapbox.com https://*.tile.openstreetmap.org https://*.clarity.ms`,
+  `connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.google-analytics.com https://*.analytics.google.com https://*.clarity.ms`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms${isDev ? " 'unsafe-eval'" : ''}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
   `worker-src 'self' blob:`,
