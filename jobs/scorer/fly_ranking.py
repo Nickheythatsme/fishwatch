@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from datetime import date
 
+from .sentiment_score import report_weight
+
 # Regex to strip size suffixes like "#18", "#16-20", "# 18"
 _SIZE_SUFFIX_RE = re.compile(r"\s*#\s*\d+[-–]?\d*\s*$")
 
@@ -67,18 +69,14 @@ def rank_flies(
     if today is None:
         today = date.today()
 
-    # Collect per-fly stats: {canonical_name: [(source_name, days_old), ...]}
-    fly_mentions: dict[str, list[tuple[str, int]]] = {}
+    # Collect per-fly stats: {canonical_name: [(source_name, weight), ...]}
+    # weight is the combined recency * source-trust * engagement weight, so forum
+    # mentions count for less than professional-shop mentions (see report_weight).
+    fly_mentions: dict[str, list[tuple[str, float]]] = {}
 
     for r in reports:
         source = r.get("source_name", "unknown")
-        report_date = r.get("report_date")
-        if report_date is None:
-            days_old = 7  # conservative default
-        elif isinstance(report_date, date):
-            days_old = max((today - report_date).days, 0)
-        else:
-            days_old = 7
+        weight = report_weight(r, today)
 
         seen_in_report: set[str] = set()
         for fl in r.get("fly_patterns_mentioned", []):
@@ -87,7 +85,7 @@ def rank_flies(
             canonical = _normalize_fly(fl, alias_map)
             if canonical not in seen_in_report:
                 seen_in_report.add(canonical)
-                fly_mentions.setdefault(canonical, []).append((source, days_old))
+                fly_mentions.setdefault(canonical, []).append((source, weight))
 
     # Score each fly
     scored: list[tuple[str, float]] = []
@@ -96,10 +94,10 @@ def rank_flies(
         distinct_sources = len({src for src, _ in mentions})
         source_multiplier = min(1.0 + 0.25 * (distinct_sources - 1), 2.0)
 
-        recency_weights = [0.85**days for _, days in mentions]
-        avg_recency = sum(recency_weights) / len(recency_weights)
+        weights = [w for _, w in mentions]
+        avg_weight = sum(weights) / len(weights)
 
-        score = mention_count * source_multiplier * avg_recency
+        score = mention_count * source_multiplier * avg_weight
         scored.append((fly_name, score))
 
     scored.sort(key=lambda x: x[1], reverse=True)

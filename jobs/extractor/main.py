@@ -43,6 +43,8 @@ CONTENT_SELECTORS = {
     # Idaho fly shops
     "fly_fish_food": "article .rte, .article__content.rte, .rte",
     "silver_creek_outfitters": ".post-content, .entry-content",
+    # Community forums (each raw_report is a single forum post's page)
+    "pnw_fly_fishing": ".message-body .bbWrapper, article.message",
     # ODFW zones — generated from the canonical ODFW_ZONES dict in scraper
     **{name: "#main-content, .field--name-body, .node__content" for name in ODFW_ZONES.values()},
 }
@@ -108,7 +110,8 @@ def run() -> int:
 
         # Fetch unprocessed reports
         cur.execute(
-            "SELECT id, source_name, source_url, raw_html, fetched_at FROM raw_reports WHERE is_processed = FALSE"
+            "SELECT id, source_name, source_url, raw_html, fetched_at, metadata "
+            "FROM raw_reports WHERE is_processed = FALSE"
         )
         reports = [
             {
@@ -117,6 +120,7 @@ def run() -> int:
                 "source_url": row[2],
                 "raw_html": row[3],
                 "fetched_at": row[4],
+                "metadata": row[5] or {},
             }
             for row in cur.fetchall()
         ]
@@ -140,6 +144,13 @@ def run() -> int:
 
         for report in reports:
             logger.info(f"Processing {report['source_name']} ({report['id'][:8]}...)")
+
+            # Source-specific signal carried from the scraper. For forum posts this
+            # holds the reaction count (engagement) and the per-post id, which keeps
+            # the original post and high-engagement replies as distinct parsed rows.
+            metadata = report.get("metadata") or {}
+            engagement = metadata.get("reactions")
+            source_post_id = metadata.get("post_id") or None
 
             # Extract text from HTML
             text = extract_text_from_html(report["raw_html"], report["source_name"])
@@ -237,9 +248,9 @@ def run() -> int:
                             (raw_report_id, water_body_id, source_name, source_url, report_date,
                              sentiment, species_mentioned, fly_patterns_mentioned,
                              conditions_summary, flow_commentary, water_clarity,
-                             hatches, river_section, raw_extraction)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (water_body_id, source_name, report_date)
+                             hatches, river_section, raw_extraction, engagement, source_post_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (water_body_id, source_name, report_date, COALESCE(source_post_id, ''))
                         DO UPDATE SET
                             raw_report_id = EXCLUDED.raw_report_id,
                             source_url = EXCLUDED.source_url,
@@ -252,6 +263,7 @@ def run() -> int:
                             hatches = EXCLUDED.hatches,
                             river_section = EXCLUDED.river_section,
                             raw_extraction = EXCLUDED.raw_extraction,
+                            engagement = EXCLUDED.engagement,
                             extracted_at = NOW()
                         """,
                         (
@@ -269,6 +281,8 @@ def run() -> int:
                             json.dumps(row.get("hatches", [])),
                             row.get("river_section"),
                             json.dumps(row.get("raw_extraction")),
+                            engagement,
+                            source_post_id,
                         ),
                     )
                     cur.execute("RELEASE SAVEPOINT extract_insert")
