@@ -154,6 +154,41 @@ def test_op_kept_even_with_zero_reactions():
     assert records[0]["metadata"]["reactions"] == 0
 
 
+def test_each_record_carries_its_own_post_html():
+    """Each record must store its own post HTML, not the whole-thread HTML.
+
+    Otherwise the extractor's select_one('.message-body .bbWrapper') would always
+    re-extract the first post (the OP), duplicating the OP's text under every
+    reply's engagement/source_post_id.
+    """
+    scraper = PNWFlyFishingScraper()
+    posts = [
+        {
+            "postId": "100",
+            "isOp": True,
+            "author": "Op",
+            "datetime": None,
+            "reactions": 5,
+            "content": "OP report text.",
+            "html": "<article data-content='post-100'>OP body</article>",
+        },
+        {
+            "postId": "200",
+            "isOp": False,
+            "author": "Replier",
+            "datetime": None,
+            "reactions": 9,
+            "content": "Reply report text.",
+            "html": "<article data-content='post-200'>Reply body</article>",
+        },
+    ]
+    records = asyncio.run(scraper.extract_records(_page_returning(posts), _THREAD_URL))
+    assert [r["raw_html"] for r in records] == [
+        "<article data-content='post-100'>OP body</article>",
+        "<article data-content='post-200'>Reply body</article>",
+    ]
+
+
 def test_empty_content_posts_are_skipped():
     scraper = PNWFlyFishingScraper()
     posts = [

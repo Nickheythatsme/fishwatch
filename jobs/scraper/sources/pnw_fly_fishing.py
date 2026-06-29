@@ -61,13 +61,18 @@ _POSTS_JS = r"""
     return count + names.length;
   };
 
-  const bodyText = (post) => {
-    const el = post.querySelector('.message-body .bbWrapper');
-    if (!el) return '';
-    // Drop quoted blocks so a reply's signal isn't drowned by what it quotes.
-    const clone = el.cloneNode(true);
+  const extractPost = (post) => {
+    // Clone the whole post and drop quoted blocks so a reply that quotes another
+    // post is not re-extracted as that post's content (the OP's text would
+    // otherwise leak into every reply's report). The cleaned per-post HTML is
+    // what the extractor re-parses, so each raw_report isolates its own post.
+    const clone = post.cloneNode(true);
     clone.querySelectorAll('.bbCodeBlock--quote, blockquote').forEach(q => q.remove());
-    return (clone.innerText || '').trim();
+    const bodyEl = clone.querySelector('.message-body .bbWrapper');
+    return {
+      content: bodyEl ? (bodyEl.innerText || '').trim() : '',
+      html: clone.outerHTML,
+    };
   };
 
   const posts = Array.from(document.querySelectorAll('article.message'));
@@ -75,13 +80,15 @@ _POSTS_JS = r"""
     const dc = post.getAttribute('data-content') || '';            // "post-250302"
     const postId = dc.startsWith('post-') ? dc.slice(5) : dc;
     const timeEl = post.querySelector('time.u-dt');
+    const { content, html } = extractPost(post);
     return {
       postId,
       isOp: i === 0,
       author: post.getAttribute('data-author') || null,
       datetime: timeEl ? timeEl.getAttribute('datetime') : null,
       reactions: parseReactions(post),
-      content: bodyText(post),
+      content,
+      html,
     };
   });
 }
@@ -130,10 +137,18 @@ class PNWFlyFishingScraper(BaseScraper):
 
             post_id = post.get("postId") or ""
             post_url = f"{url.rstrip('/')}/post-{post_id}" if post_id else url
+            record = {
+                "content": content,
+                "source_url": post_url,
+            }
+            # Store this post's own HTML (quotes stripped) so the extractor
+            # re-parses the right post rather than the whole thread's first post.
+            post_html = post.get("html")
+            if post_html:
+                record["raw_html"] = post_html
             records.append(
                 {
-                    "content": content,
-                    "source_url": post_url,
+                    **record,
                     "metadata": {
                         "reactions": reactions,
                         "replies": reply_count,

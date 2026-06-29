@@ -239,9 +239,12 @@ def run() -> int:
                         logger.warning(f"  Future report_date {report_date} clamped to {fallback_date}")
                         report_date = fallback_date
 
-                    # Upsert on (water_body_id, source_name, report_date): re-scraped
-                    # content re-extracted later replaces the older extraction instead
-                    # of creating a duplicate report
+                    # Upsert on (water_body_id, source_name, report_date,
+                    # COALESCE(source_post_id, '')): re-scraped content re-extracted
+                    # later replaces the older extraction instead of creating a
+                    # duplicate. source_post_id (NULL for shop/agency reports, a
+                    # distinct id per forum post) lets a thread's original post and
+                    # high-engagement replies coexist instead of overwriting.
                     cur.execute(
                         """
                         INSERT INTO parsed_reports
