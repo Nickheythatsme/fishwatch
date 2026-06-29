@@ -30,6 +30,22 @@ function truncate(text: string, max: number): string {
   return `${slice.slice(0, lastSpace > 0 ? lastSpace : slice.length).trimEnd()}…`
 }
 
+// Normalize a raw lead fragment into a clean sentence: trim, capitalize the
+// first alphabetic character, and ensure it ends with sentence-ending
+// punctuation (append '.' when it doesn't). e.g. "flow at 1250 cfs" -> "Flow at 1250 cfs."
+function normalizeLead(lead: string): string {
+  const trimmed = lead.trim()
+  const capitalized = trimmed.replace(/[a-z]/i, (c) => c.toUpperCase())
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`
+}
+
+// Detect whether a string already references flow, so we don't append a
+// redundant "Current flow X cfs." sentence. Matches the word "flow" or a "cfs"
+// token, case-insensitively.
+function mentionsFlow(text: string): boolean {
+  return /\bflow\b/i.test(text) || /\bcfs\b/i.test(text)
+}
+
 // "June 2026" — recomputed on each ISR pass so the title reads as current. Uses
 // the PNW timezone the app is centered on so the month flips at local midnight.
 function currentMonthYear(): string {
@@ -219,9 +235,12 @@ export function buildWaterMetadata(water: WaterMetadataInput): Metadata {
   // Synthesize the description from the live signal summary (preferred) or the
   // static blurb, then append the current flow when we have it.
   const parts: string[] = []
-  const lead = water.currentSignal?.summary ?? water.description
-  if (lead) parts.push(lead.trim())
-  if (water.currentFlow != null) {
+  const rawLead = water.currentSignal?.summary ?? water.description
+  const lead = rawLead ? normalizeLead(rawLead) : null
+  if (lead) parts.push(lead)
+  // Only append a flow sentence when the lead doesn't already mention flow, so
+  // we don't emit a redundant (and sometimes conflicting) second figure.
+  if (water.currentFlow != null && !(lead && mentionsFlow(lead))) {
     parts.push(`Current flow ${Math.round(water.currentFlow).toLocaleString('en-US')} cfs.`)
   }
   const description = truncate(
