@@ -47,6 +47,7 @@ export interface RawReport {
   raw_html: string
   fetched_at: string
   is_processed: boolean
+  metadata: Record<string, unknown>
 }
 
 export interface ParsedReport {
@@ -65,6 +66,8 @@ export interface ParsedReport {
   hatches: { name: string; stage: string | null; timing: string | null }[]
   river_section: string | null
   raw_extraction: Record<string, unknown> | null
+  engagement: number | null
+  source_post_id: string | null
   extracted_at: string
 }
 

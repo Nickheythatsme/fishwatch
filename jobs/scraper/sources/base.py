@@ -127,32 +127,44 @@ class BaseScraper(ABC):
                         await page.goto(absolute_url, wait_until=self.goto_wait_until)
 
                     self._body_fallback_used = False
-                    content = await self.extract_content(page)
-                    if not content or not content.strip():
-                        logger.warning(f"[{self.name}] Empty content from {absolute_url}")
-                        continue
+                    records = await self.extract_records(page, absolute_url)
 
                     if self._body_fallback_used:
                         body_fallback_used = True
                         logger.warning(f"[{self.name}] Selector fallback to body on {absolute_url}")
 
-                    posts_extracted += 1
-                    content_hash = hashlib.sha256(content.encode()).hexdigest()
+                    # A page can yield multiple records (e.g. a forum thread's
+                    # original post plus high-engagement replies). Each becomes its
+                    # own raw_report with an independent content hash and metadata.
+                    raw_html = await page.content()
+                    page_extracted = False
+                    for record in records:
+                        content = record.get("content")
+                        if not content or not content.strip():
+                            continue
+                        page_extracted = True
+                        content_hash = hashlib.sha256(content.encode()).hexdigest()
 
-                    if known_hashes and content_hash in known_hashes:
-                        logger.debug(f"[{self.name}] Unchanged: {absolute_url}")
+                        if known_hashes and content_hash in known_hashes:
+                            logger.debug(f"[{self.name}] Unchanged: {record.get('source_url', absolute_url)}")
+                            continue
+
+                        raw_reports.append(
+                            {
+                                "source_name": self.name,
+                                "source_url": record.get("source_url", absolute_url),
+                                "raw_html": record.get("raw_html", raw_html),
+                                "content_hash": content_hash,
+                                "fetched_at": datetime.now(UTC).isoformat(),
+                                "metadata": record.get("metadata") or {},
+                            }
+                        )
+
+                    if not page_extracted:
+                        logger.warning(f"[{self.name}] Empty content from {absolute_url}")
                         continue
 
-                    raw_html = await page.content()
-                    raw_reports.append(
-                        {
-                            "source_name": self.name,
-                            "source_url": absolute_url,
-                            "raw_html": raw_html,
-                            "content_hash": content_hash,
-                            "fetched_at": datetime.now(UTC).isoformat(),
-                        }
-                    )
+                    posts_extracted += 1
                 except Exception as exc:
                     logger.exception(f"[{self.name}] Error on {post_url}")
                     posts_failed += 1
@@ -184,7 +196,27 @@ class BaseScraper(ABC):
         """Given the index page, return URLs of individual report posts."""
         ...
 
-    @abstractmethod
+    async def extract_records(self, page: Page, url: str) -> list[dict]:
+        """Given an individual post page, return one or more report records.
+
+        Each record is a dict with keys:
+            content    — the report text (used for hashing/dedup); required
+            source_url — per-record permalink (defaults to the page URL)
+            raw_html   — per-record HTML (defaults to the full page HTML)
+            metadata   — source-specific extras stored on raw_reports.metadata
+
+        The default wraps extract_content() into a single record, so the common
+        one-report-per-page scrapers only implement extract_content. Multi-record
+        sources (e.g. a forum thread → original post + high-engagement replies)
+        override this method instead.
+        """
+        content = await self.extract_content(page)
+        return [{"content": content, "source_url": url, "metadata": {}}]
+
     async def extract_content(self, page: Page) -> str:
-        """Given an individual post page, extract the report text content."""
-        ...
+        """Given an individual post page, extract the report text content.
+
+        Subclasses implement this for the common single-report-per-page case.
+        Subclasses that override extract_records do not need to implement it.
+        """
+        raise NotImplementedError(f"{type(self).__name__} must implement extract_content or override extract_records")

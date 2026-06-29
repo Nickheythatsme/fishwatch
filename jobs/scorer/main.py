@@ -71,7 +71,7 @@ def run() -> int:
                 cur.execute(
                     """
                     SELECT sentiment, source_name, species_mentioned,
-                           fly_patterns_mentioned, report_date
+                           fly_patterns_mentioned, report_date, engagement
                     FROM parsed_reports
                     WHERE water_body_id = %s
                       AND report_date >= %s
@@ -86,6 +86,7 @@ def run() -> int:
                         "species_mentioned": row[2] or [],
                         "fly_patterns_mentioned": row[3] or [],
                         "report_date": row[4],
+                        "engagement": row[5],
                     }
                     for row in cur.fetchall()
                 ]

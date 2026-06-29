@@ -58,6 +58,7 @@ CREATE TABLE raw_reports (
     raw_html TEXT NOT NULL,
     fetched_at TIMESTAMPTZ DEFAULT NOW(),
     is_processed BOOLEAN DEFAULT FALSE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,  -- Source-specific extras, e.g. forum engagement {reactions, replies, post_type, post_id, author}
 
     UNIQUE(source_name, content_hash)       -- Prevent duplicate scrapes
 );
@@ -78,6 +79,8 @@ CREATE TABLE parsed_reports (
     hatches JSONB NOT NULL DEFAULT '[]'::jsonb,  -- Array of {name, stage, timing} objects
     river_section TEXT,                      -- Specific section or access point mentioned
     raw_extraction JSONB,                    -- Full Claude extraction JSON
+    engagement INTEGER,                      -- Crowd-engagement signal (e.g. forum reaction count); NULL for sources without one
+    source_post_id TEXT,                     -- Per-post discriminator for multi-post sources (e.g. forum post id); NULL for shop/agency reports
     extracted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -120,8 +123,12 @@ CREATE INDEX idx_gauge_readings_station_time ON gauge_readings(station_id, measu
 CREATE INDEX idx_gauge_readings_water_body ON gauge_readings(water_body_id, measured_at DESC);
 CREATE INDEX idx_parsed_reports_water_body ON parsed_reports(water_body_id, report_date DESC);
 CREATE INDEX idx_parsed_reports_source ON parsed_reports(source_name, report_date DESC);
--- One report per (water body, source, date) — the extractor upserts on conflict
-CREATE UNIQUE INDEX idx_parsed_reports_unique_report ON parsed_reports(water_body_id, source_name, report_date);
+-- One report per (water body, source, date, post). source_post_id is NULL for
+-- single-report-per-page sources (shops/agencies) — COALESCE folds it to '' so
+-- they keep one-report-per (water, source, date); multi-post sources (forums)
+-- set a distinct post id so OP + replies on the same water/date coexist.
+CREATE UNIQUE INDEX idx_parsed_reports_unique_report
+    ON parsed_reports(water_body_id, source_name, report_date, COALESCE(source_post_id, ''));
 CREATE INDEX idx_water_scores_water_body ON water_scores(water_body_id, score_date DESC);
 CREATE INDEX idx_raw_reports_source ON raw_reports(source_name, fetched_at DESC);
 CREATE INDEX idx_raw_reports_unprocessed ON raw_reports(is_processed) WHERE is_processed = FALSE;

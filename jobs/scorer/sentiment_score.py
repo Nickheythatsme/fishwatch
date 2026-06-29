@@ -26,15 +26,43 @@ DEFAULT_AGE_DAYS = 7
 NEUTRAL_SCORE = 5.0
 NEUTRAL_PRIOR_WEIGHT = 0.5
 
+# Per-source trust multiplier. Professional fly-shop and agency reports are the
+# baseline (1.0). Community-forum reports are user-generated and uneven, so they
+# count for less. Combined with engagement_factor() below, a forum report never
+# outweighs a shop report (max 0.5 * 1.0 = 0.5).
+DEFAULT_SOURCE_WEIGHT = 1.0
+SOURCE_WEIGHTS = {
+    "pnw_fly_fishing": 0.5,
+}
+
+
+def engagement_factor(report: dict) -> float:
+    """Crowd-engagement multiplier in [0.6, 1.0] for sources that carry one.
+
+    Sources without an engagement signal (engagement is None — shops/agencies)
+    are unscaled (1.0). For forum posts, more reactions ("thumbs up") => more
+    trust, saturating at 1.0 once a post clears ~8 reactions.
+    """
+    engagement = report.get("engagement")
+    if engagement is None:
+        return 1.0
+    return min(1.0, 0.6 + 0.05 * max(engagement, 0))
+
 
 def report_weight(report: dict, today: date) -> float:
-    """Recency weight for a report: RECENCY_DECAY ** days_old."""
+    """Combined per-report weight: recency * source trust * engagement.
+
+    Both score_sentiment and score_consensus route through this, so source and
+    engagement weighting apply consistently across signals.
+    """
     report_date = report.get("report_date")
     if report_date is None:
         days_old = DEFAULT_AGE_DAYS
     else:
         days_old = max((today - report_date).days, 0)
-    return RECENCY_DECAY**days_old
+    recency = RECENCY_DECAY**days_old
+    source_weight = SOURCE_WEIGHTS.get(report.get("source_name"), DEFAULT_SOURCE_WEIGHT)
+    return recency * source_weight * engagement_factor(report)
 
 
 def score_sentiment(reports: list[dict], today: date | None = None) -> float | None:

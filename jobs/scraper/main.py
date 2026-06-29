@@ -11,6 +11,7 @@ import traceback as tb
 from datetime import UTC, datetime
 
 from playwright.async_api import async_playwright
+from psycopg2.extras import Json
 
 from db import get_connection
 
@@ -23,6 +24,7 @@ from .sources.fly_and_field import FlyAndFieldScraper
 from .sources.fly_fish_food import FlyFishFoodScraper
 from .sources.fly_fishers import FlyFishersScraper
 from .sources.odfw import ODFW_ZONES, ODFWScraper
+from .sources.pnw_fly_fishing import PNWFlyFishingScraper
 from .sources.silver_bow import SilverBowScraper
 from .sources.silver_creek_outfitters import SilverCreekOutfittersScraper
 
@@ -47,6 +49,8 @@ SCRAPERS = [
     SilverCreekOutfittersScraper(),
     # ODFW zones (Oregon state agency)
     *[ODFWScraper(zone_slug=zone) for zone in ODFW_ZONES],
+    # Community forums (user-generated; engagement-gated + down-weighted downstream)
+    PNWFlyFishingScraper(),
 ]
 
 
@@ -120,14 +124,14 @@ async def main() -> int:
                             cur.execute(
                                 """
                                 INSERT INTO raw_reports
-                                    (source_name, source_url, raw_html, content_hash, fetched_at)
+                                    (source_name, source_url, raw_html, content_hash, fetched_at, metadata)
                                 VALUES
                                     (%(source_name)s, %(source_url)s, %(raw_html)s,
-                                     %(content_hash)s, %(fetched_at)s)
+                                     %(content_hash)s, %(fetched_at)s, %(metadata)s)
                                 ON CONFLICT (source_name, content_hash) DO NOTHING
                                 RETURNING id
                                 """,
-                                report,
+                                {**report, "metadata": Json(report.get("metadata") or {})},
                             )
                             row = cur.fetchone()
                             if row:

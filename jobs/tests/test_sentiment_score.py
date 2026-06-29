@@ -6,6 +6,8 @@ from scorer.sentiment_score import (
     NEUTRAL_PRIOR_WEIGHT,
     NEUTRAL_SCORE,
     RECENCY_DECAY,
+    SOURCE_WEIGHTS,
+    engagement_factor,
     report_weight,
     score_sentiment,
 )
@@ -81,3 +83,44 @@ def test_future_dated_report_clamped_to_full_weight():
 def test_neutral_prior_constants_sane():
     assert NEUTRAL_SCORE == 5.0
     assert 0 < NEUTRAL_PRIOR_WEIGHT < 1
+
+
+# ── Source-trust + engagement weighting ─────────────────────────────────────
+
+
+def test_unknown_source_keeps_default_weight():
+    """A report from a non-forum source (no engagement) is unscaled."""
+    fresh = _report("good", 0)
+    fresh["source_name"] = "confluence_fly_shop"
+    assert report_weight(fresh, TODAY) == 1.0
+
+
+def test_forum_source_is_down_weighted_below_shop():
+    """A forum report never outweighs an equivalent professional-shop report."""
+    shop = {**_report("good", 0), "source_name": "confluence_fly_shop"}
+    forum = {**_report("good", 0), "source_name": "pnw_fly_fishing", "engagement": 25}
+    # Even a highly-reacted, perfectly fresh forum post tops out at the source cap.
+    assert report_weight(forum, TODAY) < report_weight(shop, TODAY)
+    assert report_weight(forum, TODAY) == SOURCE_WEIGHTS["pnw_fly_fishing"]
+
+
+def test_higher_engagement_weighs_more_within_forum():
+    """Among forum posts, more reactions => more influence (up to the cap)."""
+    low = {**_report("good", 0), "source_name": "pnw_fly_fishing", "engagement": 0}
+    high = {**_report("good", 0), "source_name": "pnw_fly_fishing", "engagement": 20}
+    assert report_weight(high, TODAY) > report_weight(low, TODAY)
+
+
+def test_engagement_factor_bounds():
+    """engagement_factor stays within [0.6, 1.0]; None (no signal) is unscaled."""
+    assert engagement_factor({"engagement": None}) == 1.0
+    assert engagement_factor({"engagement": 0}) == 0.6
+    assert engagement_factor({"engagement": 1000}) == 1.0  # saturates at the cap
+    assert engagement_factor({"engagement": -5}) == 0.6  # negative clamped
+
+
+def test_forum_sentiment_pulled_toward_neutral_by_low_weight():
+    """A lone forum 'excellent' moves the score less than a shop 'excellent'."""
+    shop = score_sentiment([{**_report("excellent", 0), "source_name": "confluence_fly_shop"}], TODAY)
+    forum = score_sentiment([{**_report("excellent", 0), "source_name": "pnw_fly_fishing", "engagement": 5}], TODAY)
+    assert NEUTRAL_SCORE < forum < shop
