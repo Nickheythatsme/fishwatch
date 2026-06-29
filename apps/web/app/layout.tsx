@@ -3,6 +3,7 @@ import { Manrope, Newsreader } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { GoogleAnalytics } from '@next/third-parties/google'
+import { Clarity } from '@/components/analytics/Clarity'
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import { TopBar } from '@/components/shell/TopBar'
 import { MobileNav } from '@/components/shell/MobileNav'
@@ -76,6 +77,7 @@ export default function RootLayout({
         </ApolloWrapper>
         <Analytics />
         <SpeedInsights />
+        <Clarity />
       </body>
       {gaMeasurementId ? <GoogleAnalytics gaId={gaMeasurementId} /> : null}
     </html>
