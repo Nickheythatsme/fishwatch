@@ -75,6 +75,42 @@ export function buildLeaderboardMetadata(): Metadata {
   }
 }
 
+/**
+ * Build `/reports` feed metadata: title, description, canonical, and OG /
+ * Twitter tags. Without these the page inherited the generic root-layout title
+ * and had no description, so Google built snippets by scraping visible DOM text
+ * (nav + filter chrome interleaved with cards). The month/year in the title is
+ * recomputed on each ISR pass so the heading reads as current without a rebuild.
+ */
+export function buildReportsMetadata(): Metadata {
+  // Feed aggregates reports across every water body, so keep the framing
+  // Pacific Northwest-wide to match the product's branding and the other
+  // PNW-wide pages (leaderboard).
+  const title = `Latest Pacific Northwest Fishing Reports — ${currentMonthYear()}`
+  const description =
+    'Fresh fly shop fishing reports for Pacific Northwest rivers and lakes — conditions, hatches, and hot flies, aggregated and updated every 30 minutes.'
+  const canonical = `${SITE_URL}/reports`
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  }
+}
+
 // The fields needed for basin page metadata.
 interface BasinMetadataInput {
   name: string
