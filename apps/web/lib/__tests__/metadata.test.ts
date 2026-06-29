@@ -84,6 +84,79 @@ describe('buildWaterMetadata', () => {
   })
 })
 
+describe('buildWaterMetadata description hygiene', () => {
+  it('does not append a second flow sentence when the lead already mentions flow', () => {
+    // Live-data regression: the summary already carried a flow figure, and the
+    // builder appended a second, conflicting one — "...flow at 1250 cfs. Current
+    // flow 1,260 cfs.". The appended sentence must be suppressed.
+    const meta = buildWaterMetadata({
+      ...base,
+      currentFlow: 1260,
+      currentSignal: {
+        compositeScore: 8,
+        summary: 'Reports indicate excellent conditions. flow at 1250 cfs',
+      },
+    })
+    expect(meta.description).toBe(
+      'Reports indicate excellent conditions. flow at 1250 cfs.'
+    )
+    // No duplicated/appended flow sentence.
+    expect(meta.description).not.toContain('Current flow')
+    expect(meta.description).not.toContain('1,260')
+    // The appended-flow regex ("<number> cfs") appears exactly once.
+    expect((meta.description?.match(/cfs/gi) ?? []).length).toBe(1)
+  })
+
+  it('suppresses the appended flow sentence when the lead only mentions cfs', () => {
+    const meta = buildWaterMetadata({
+      ...base,
+      currentFlow: 980,
+      currentSignal: { compositeScore: 6, summary: 'Holding around 950 cfs and fishing well' },
+    })
+    expect(meta.description).not.toContain('Current flow')
+    expect((meta.description?.match(/cfs/gi) ?? []).length).toBe(1)
+  })
+
+  it('capitalizes and punctuates a fragment lead before appending', () => {
+    const meta = buildWaterMetadata({
+      ...base,
+      currentFlow: null,
+      currentSignal: { compositeScore: 7, summary: 'fishing well on small dries' },
+    })
+    expect(meta.description).toBe('Fishing well on small dries.')
+  })
+
+  it('does not double-punctuate a lead that already ends in a sentence mark', () => {
+    const meta = buildWaterMetadata({
+      ...base,
+      currentFlow: null,
+      currentSignal: { compositeScore: 7, summary: 'Hatches are popping!' },
+    })
+    expect(meta.description).toBe('Hatches are popping!')
+  })
+
+  it('appends a single clean flow sentence when currentFlow is present but no lead is', () => {
+    const meta = buildWaterMetadata({
+      ...base,
+      description: null,
+      currentSignal: null,
+      currentFlow: 1260,
+    })
+    expect(meta.description).toBe('Current flow 1,260 cfs.')
+  })
+
+  it('cleans the lead and appends flow when the lead does not mention flow', () => {
+    const meta = buildWaterMetadata({
+      ...base,
+      currentFlow: 1260,
+      currentSignal: { compositeScore: 8, summary: 'reports indicate excellent conditions' },
+    })
+    expect(meta.description).toBe(
+      'Reports indicate excellent conditions. Current flow 1,260 cfs.'
+    )
+  })
+})
+
 describe('buildLeaderboardMetadata', () => {
   it('builds a freshness-stamped Pacific Northwest title', () => {
     const meta = buildLeaderboardMetadata()
