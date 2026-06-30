@@ -4,6 +4,8 @@ import {
   canonicalPair,
   selectCuratedPairs,
   isPairCurated,
+  selectComparePairLinks,
+  type ComparePairLinkWater,
 } from '@/lib/compare/pairs'
 import { isPublishable } from '@/lib/seo/gating'
 
@@ -254,5 +256,129 @@ describe('compare pair gating', () => {
       )
     })
     expect(publishablePairs).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// selectComparePairLinks — gated, labeled, capped link selection for
+// contextual "Compare with…" blocks (issue #147)
+// ---------------------------------------------------------------------------
+
+describe('selectComparePairLinks', () => {
+  const freshDate = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 3)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const staleDate = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const goodSignal = {
+    compositeScore: 7.5,
+    flowScore: 3.0 as number | null,
+    sentimentScore: 6.0 as number | null,
+    consensusScore: 5.0 as number | null,
+  }
+
+  function water(
+    slug: string,
+    basinSlug: string,
+    overrides: Partial<ComparePairLinkWater> = {}
+  ): ComparePairLinkWater {
+    return {
+      slug,
+      name: slug,
+      basin: { slug: basinSlug },
+      currentSignal: goodSignal,
+      recentReports: [{ reportDate: freshDate }],
+      ...overrides,
+    }
+  }
+
+  it('returns labeled links for publishable curated pairs', () => {
+    const waters = [
+      water('deschutes-river', 'deschutes-basin', { name: 'Deschutes River' }),
+      water('crooked-river', 'deschutes-basin', { name: 'Crooked River' }),
+    ]
+    const links = selectComparePairLinks(waters, () => true)
+    expect(links).toHaveLength(1)
+    expect(links[0]).toMatchObject({
+      slugA: 'crooked-river',
+      slugB: 'deschutes-river',
+      nameA: 'Crooked River',
+      nameB: 'Deschutes River',
+    })
+  })
+
+  it('never includes a pair where either water is unpublishable (stale report)', () => {
+    const waters = [
+      water('deschutes-river', 'deschutes-basin'),
+      water('crooked-river', 'deschutes-basin', {
+        recentReports: [{ reportDate: staleDate }],
+      }),
+    ]
+    expect(selectComparePairLinks(waters, () => true)).toHaveLength(0)
+  })
+
+  it('never includes a pair where either water has a no-data signal', () => {
+    const noDataSignal = {
+      compositeScore: 5.0,
+      flowScore: null,
+      sentimentScore: null,
+      consensusScore: null,
+    }
+    const waters = [
+      water('deschutes-river', 'deschutes-basin'),
+      water('crooked-river', 'deschutes-basin', { currentSignal: noDataSignal }),
+    ]
+    expect(selectComparePairLinks(waters, () => true)).toHaveLength(0)
+  })
+
+  it('respects the include filter (e.g. only pairs involving one water)', () => {
+    const waters = [
+      water('deschutes-river', 'deschutes-basin'),
+      water('crooked-river', 'deschutes-basin'),
+      water('metolius-river', 'deschutes-basin'),
+    ]
+    const links = selectComparePairLinks(
+      waters,
+      (pair) => pair.slugA === 'metolius-river' || pair.slugB === 'metolius-river'
+    )
+    expect(links.length).toBeGreaterThan(0)
+    for (const link of links) {
+      expect([link.slugA, link.slugB]).toContain('metolius-river')
+    }
+  })
+
+  it('caps results to the limit', () => {
+    const waters = [
+      water('a-river', 'basin-1'),
+      water('b-river', 'basin-1'),
+      water('c-river', 'basin-1'),
+      water('d-river', 'basin-1'),
+    ]
+    // basin-1 C(4,2) = 6 curated pairs, all publishable — capped to 2.
+    const links = selectComparePairLinks(waters, () => true, 2)
+    expect(links).toHaveLength(2)
+  })
+
+  it('supports an uncapped Infinity limit for the /compare index', () => {
+    const waters = [
+      water('a-river', 'basin-1'),
+      water('b-river', 'basin-1'),
+      water('c-river', 'basin-1'),
+      water('d-river', 'basin-1'),
+    ]
+    const links = selectComparePairLinks(waters, () => true, Infinity)
+    expect(links).toHaveLength(6)
+  })
+
+  it('returns an empty array when no pairs are curated', () => {
+    const waters = [water('lone-river', 'lone-basin')]
+    expect(selectComparePairLinks(waters, () => true)).toHaveLength(0)
   })
 })

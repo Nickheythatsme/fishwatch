@@ -190,6 +190,57 @@ export function buildNearMetadata(town: Town): Metadata {
   }
 }
 
+/**
+ * Build `/near` index page metadata: a static, always-publishable hub linking
+ * to every currently-indexable `/near/[town]` page (issue #147).
+ */
+export function buildNearIndexMetadata(): Metadata {
+  const title = `Fishing Near You — Pacific Northwest Towns (${currentMonthYear()})`
+  const description =
+    'Find live fishing conditions near Bend, Portland, Medford, and other Pacific Northwest towns — ranked by distance and composite score, updated every 30 minutes.'
+  const canonical = `${SITE_URL}/near`
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title, description },
+    robots: { index: true, follow: true },
+  }
+}
+
+/**
+ * Build `/compare` index page metadata: a static, always-publishable hub
+ * linking to every currently-indexable curated `/compare/[pair]` page
+ * (issue #147).
+ */
+export function buildCompareIndexMetadata(): Metadata {
+  const title = `Compare Pacific Northwest Fishing Waters — ${currentMonthYear()}`
+  const description =
+    'Side-by-side fishing condition comparisons for curated Pacific Northwest river matchups, updated every 30 minutes from fly shop reports and USGS gauge data.'
+  const canonical = `${SITE_URL}/compare`
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: 'Score.Fish',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title, description },
+    robots: { index: true, follow: true },
+  }
+}
+
 interface CompareMetadataInput {
   nameA: string
   nameB: string

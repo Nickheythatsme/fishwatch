@@ -20,7 +20,11 @@ import { FlowChart } from '@/components/gauges/FlowChart'
 import { BackButton } from '@/components/shell/BackButton'
 import { Breadcrumbs, type Crumb } from '@/components/shell/Breadcrumbs'
 import { RelatedWaters, type RelatedWater } from '@/components/water/RelatedWaters'
+import { RelatedCompare } from '@/components/water/RelatedCompare'
+import { NearbyTowns } from '@/components/water/NearbyTowns'
 import { FreshnessBadge } from '@/components/water/FreshnessBadge'
+import { selectComparePairLinks, type ComparePairLinkWater } from '@/lib/compare/pairs'
+import { nearestPublishableTown, type NearGatingWater } from '@/lib/near/gating'
 // `WaterBodyMiniMap` is a Leaflet client island (it only runs in the browser).
 // The `ssr: false` dynamic import lives in this 'use client' wrapper because
 // Next.js disallows it directly in a Server Component. All other data is
@@ -206,6 +210,52 @@ async function fetchRelatedByRegion(region: string, currentSlug: string): Promis
   }
 }
 
+// Every water's slug/name/basin/coordinates/gating fields — feeds both the
+// "Compare with nearby waters" and "Fishing Near {town}" contextual link
+// blocks (issue #147). A single query covers both concerns since
+// `selectComparePairLinks` needs the global curated-pairs universe (including
+// cross-basin marquee partners) and `nearestPublishableTown` needs every
+// water's coordinates to gate town publishability identically to the sitemap.
+const RELATED_LINKS_QUERY = /* GraphQL */ `
+  query RelatedLinks {
+    waterBodies {
+      slug
+      name
+      latitude
+      longitude
+      basin {
+        slug
+      }
+      currentSignal {
+        compositeScore
+        flowScore
+        sentimentScore
+        consensusScore
+      }
+      recentReports(limit: 1) {
+        reportDate
+      }
+    }
+  }
+`
+
+interface RelatedLinkWater extends ComparePairLinkWater, NearGatingWater {}
+
+interface RelatedLinksData {
+  waterBodies: RelatedLinkWater[]
+}
+
+async function fetchRelatedLinkWaters(): Promise<RelatedLinkWater[]> {
+  try {
+    const data = await ssrQuery<RelatedLinksData>(RELATED_LINKS_QUERY)
+    return data.waterBodies
+  } catch {
+    // Contextual compare/near links are a non-critical enhancement; never fail
+    // the page if this query errors. Render neither block instead.
+    return []
+  }
+}
+
 export async function generateStaticParams() {
   try {
     const data = await ssrQuery<OregonSlugsData>(OREGON_SLUGS_QUERY, {
@@ -320,6 +370,21 @@ export default async function WaterBodyPage({
         .filter((w) => w.slug !== wb.slug)
         .slice(0, MAX_RELATED_WATERS)
     : await fetchRelatedByRegion(wb.region, wb.slug)
+
+  // Gating-aware contextual links (issue #147): "Compare with nearby waters"
+  // and "Fishing Near {town}". Both are derived from the same global water
+  // list and routed through `selectComparePairLinks` / `nearestPublishableTown`,
+  // which enforce isPublishable() on every linked target — never a 404 or
+  // noindex page.
+  const relatedLinkWaters = await fetchRelatedLinkWaters()
+  const comparePairs = selectComparePairLinks(
+    relatedLinkWaters,
+    (pair) => pair.slugA === wb.slug || pair.slugB === wb.slug
+  )
+  const nearestTown =
+    wb.latitude != null && wb.longitude != null
+      ? nearestPublishableTown(wb.latitude, wb.longitude, relatedLinkWaters)
+      : null
 
   // Breadcrumb trail: Home → [Basin →] Water. The basin crumb is added when the
   // water has a basin; falls back to Home → Water when basin is null.
@@ -521,6 +586,13 @@ export default async function WaterBodyPage({
       <div className="mt-10">
         <RelatedWaters waters={relatedWaters} region={wb.region} basin={wb.basin} />
       </div>
+
+      {(comparePairs.length > 0 || nearestTown) && (
+        <div className="mt-8 space-y-6">
+          <RelatedCompare pairs={comparePairs} />
+          {nearestTown && <NearbyTowns towns={[nearestTown]} />}
+        </div>
+      )}
     </div>
   )
 }

@@ -84,6 +84,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.8,
     },
+    // /near and /compare are static, always-publishable hub pages (issue
+    // #147) — they list only already-gated leaves, so unlike /water, /basin,
+    // /near/[town], and /compare/[pair] below they need no isPublishable check.
+    {
+      url: `${SITE_URL}/near`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/compare`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.5,
+    },
   ]
 
   let waters: SitemapWater[] = []

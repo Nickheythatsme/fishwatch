@@ -3,6 +3,8 @@ import {
   buildWaterMetadata,
   buildLeaderboardMetadata,
   buildReportsMetadata,
+  buildNearIndexMetadata,
+  buildCompareIndexMetadata,
   SITE_URL,
 } from '@/lib/seo/metadata'
 
@@ -224,6 +226,50 @@ describe('buildReportsMetadata', () => {
 
   it('is indexable', () => {
     const meta = buildReportsMetadata()
+    expect(meta.robots).toEqual({ index: true, follow: true })
+  })
+})
+
+describe('buildNearIndexMetadata (issue #147)', () => {
+  it('uses /near as canonical and OG url', () => {
+    const meta = buildNearIndexMetadata()
+    const canonical = `${SITE_URL}/near`
+    expect(meta.alternates?.canonical).toBe(canonical)
+    expect(meta.openGraph?.url).toBe(canonical)
+  })
+
+  it('mirrors title/description into OG and Twitter', () => {
+    const meta = buildNearIndexMetadata()
+    expect(meta.openGraph?.title).toBe(meta.title)
+    expect(meta.openGraph?.description).toBe(meta.description)
+    expect(meta.twitter?.title).toBe(meta.title)
+    expect(meta.twitter?.description).toBe(meta.description)
+  })
+
+  it('is always indexable — a static hub page, not gated by isPublishable', () => {
+    const meta = buildNearIndexMetadata()
+    expect(meta.robots).toEqual({ index: true, follow: true })
+  })
+})
+
+describe('buildCompareIndexMetadata (issue #147)', () => {
+  it('uses /compare as canonical and OG url', () => {
+    const meta = buildCompareIndexMetadata()
+    const canonical = `${SITE_URL}/compare`
+    expect(meta.alternates?.canonical).toBe(canonical)
+    expect(meta.openGraph?.url).toBe(canonical)
+  })
+
+  it('mirrors title/description into OG and Twitter', () => {
+    const meta = buildCompareIndexMetadata()
+    expect(meta.openGraph?.title).toBe(meta.title)
+    expect(meta.openGraph?.description).toBe(meta.description)
+    expect(meta.twitter?.title).toBe(meta.title)
+    expect(meta.twitter?.description).toBe(meta.description)
+  })
+
+  it('is always indexable — a static hub page, not gated by isPublishable', () => {
+    const meta = buildCompareIndexMetadata()
     expect(meta.robots).toEqual({ index: true, follow: true })
   })
 })

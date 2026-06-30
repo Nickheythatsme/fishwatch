@@ -7,6 +7,10 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { Breadcrumbs, type Crumb } from '@/components/shell/Breadcrumbs'
 import { BackButton } from '@/components/shell/BackButton'
 import { IntelligenceCard, type IntelligenceCardWaterBody } from '@/components/intelligence/IntelligenceCard'
+import { RelatedCompare } from '@/components/water/RelatedCompare'
+import { NearbyTowns } from '@/components/water/NearbyTowns'
+import { selectComparePairLinks, type ComparePairLinkWater } from '@/lib/compare/pairs'
+import { relevantPublishableTowns, type NearGatingWater } from '@/lib/near/gating'
 
 export const revalidate = 1800
 export const dynamicParams = true
@@ -25,12 +29,17 @@ const BASIN_PAGE_QUERY = /* GraphQL */ `
         slug
         typicalSpecies
         currentFlow
+        latitude
+        longitude
         currentSignal {
           compositeScore
           flowScore
           sentimentScore
           consensusScore
           topSection
+        }
+        recentReports(limit: 1) {
+          reportDate
         }
       }
     }
@@ -45,13 +54,41 @@ const BASIN_SLUGS_QUERY = /* GraphQL */ `
   }
 `
 
+// Mirrors `app/near/page.tsx`'s gating query — only the fields needed to
+// decide whether a town's `/near/[town]` page is currently indexable, fetched
+// globally (not just this basin's waters) because a town's publishability
+// depends on every water near it, not only this basin's members.
+const ALL_WATERS_NEAR_GATING_QUERY = /* GraphQL */ `
+  query AllWatersNearGating {
+    waterBodies {
+      latitude
+      longitude
+      currentSignal {
+        compositeScore
+        flowScore
+        sentimentScore
+        consensusScore
+      }
+      recentReports(limit: 1) {
+        reportDate
+      }
+    }
+  }
+`
+
+interface BasinWater extends IntelligenceCardWaterBody {
+  latitude: number | null
+  longitude: number | null
+  recentReports: Array<{ reportDate: string | null }>
+}
+
 interface Basin {
   id: string
   name: string
   slug: string
   region: string
   description: string | null
-  waters: IntelligenceCardWaterBody[]
+  waters: BasinWater[]
 }
 
 interface BasinPageData {
@@ -61,6 +98,26 @@ interface BasinPageData {
 interface BasinSlugsData {
   basins: { slug: string }[]
 }
+
+interface AllWatersNearGatingData {
+  waterBodies: NearGatingWater[]
+}
+
+async function fetchAllWatersForNearGating(): Promise<NearGatingWater[]> {
+  try {
+    const data = await ssrQuery<AllWatersNearGatingData>(ALL_WATERS_NEAR_GATING_QUERY)
+    return data.waterBodies
+  } catch {
+    // Contextual near-town links are a non-critical enhancement; never fail
+    // the page if this query errors. Render no nearby-towns block instead.
+    return []
+  }
+}
+
+// Cap for the basin page's contextual "Compare with…" block — slightly lower
+// than the water page's default so the combined compare + near-town links
+// stay within the ≤5 per-page SEO link cap (issue #147).
+const MAX_BASIN_COMPARE_LINKS = 3
 
 export async function generateStaticParams() {
   try {
@@ -130,10 +187,29 @@ export default async function BasinPage({
 
   // graphql-js returns null-prototype objects; spread to plain objects so React
   // can serialize them across the Server→Client boundary to IntelligenceCard.
+  // NOTE: recentReports (added to BasinWater for #147 near-gating) is also a
+  // null-prototype array element — plainify it too, or the prerender serializer
+  // throws "null prototypes are not supported" on [{reportDate}].
   const waters: IntelligenceCardWaterBody[] = sortedWaters.map((w) => ({
     ...w,
     currentSignal: w.currentSignal ? { ...w.currentSignal } : null,
+    recentReports: w.recentReports.map((r) => ({ ...r })),
   }))
+
+  // Gating-aware contextual links (issue #147): in-basin "Compare with…"
+  // pairs and relevant "Fishing Near {town}" links. Both enforce
+  // isPublishable() on every linked target — never a 404 or noindex page.
+  const comparePairWaters: ComparePairLinkWater[] = basin.waters.map((w) => ({
+    slug: w.slug,
+    name: w.name,
+    basin: { slug: basin.slug },
+    currentSignal: w.currentSignal ? { ...w.currentSignal } : null,
+    recentReports: w.recentReports.map((r) => ({ ...r })),
+  }))
+  const comparePairs = selectComparePairLinks(comparePairWaters, () => true, MAX_BASIN_COMPARE_LINKS)
+
+  const allWatersForNearGating = await fetchAllWatersForNearGating()
+  const nearbyTowns = relevantPublishableTowns(basin.waters, allWatersForNearGating)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -172,6 +248,13 @@ export default async function BasinPage({
         <p className="mt-8 font-body text-sm text-on-surface-variant">
           No waters in this basin yet — check back soon.
         </p>
+      )}
+
+      {(comparePairs.length > 0 || nearbyTowns.length > 0) && (
+        <div className="mt-8 space-y-6">
+          <RelatedCompare pairs={comparePairs} />
+          <NearbyTowns towns={nearbyTowns} />
+        </div>
       )}
     </div>
   )
