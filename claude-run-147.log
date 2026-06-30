@@ -1,0 +1,14 @@
+## Summary
+
+Implemented issue #147 end to end on `feat/issue-147-internal-linking` and opened **[PR #148](https://github.com/Nickheythatsme/fishwatch/pull/148)** (open, not merged).
+
+**What changed:**
+- **`/near` hub** (`app/near/page.tsx`) — static index of the 10 curated towns, gated to only show towns whose `/near/[town]` page is currently publishable. Added to TopBar + MobileNav ("Near You" / "Near").
+- **`/compare` hub** (`app/compare/page.tsx`) — index of all curated, publishable compare pairs. Not in global nav, per spec.
+- **Contextual links**: water page gets a "Compare With Nearby Waters" block (≤4 links) + a nearest-town link; basin page gets in-basin compare links (≤3) + up to 2 nearby-town links. Both below the conditions fold (mobile score stays above the fold).
+- **Gating**: new `selectComparePairLinks()` (`lib/compare/pairs.ts`) and `lib/near/gating.ts` helpers route every link through `isPublishable()` + `selectCuratedPairs()` — structurally impossible to emit a link to a 404 or noindex page. New components `RelatedCompare`/`NearbyTowns` are purely presentational.
+- **Sitemap**: added static `/near` and `/compare` entries; existing gated logic untouched.
+- **Leaderboard**: intentionally untouched (stale GSC data, not a real bug), as called out in the PR description.
+- Tests added/extended across `lib/__tests__/compare.test.ts`, `lib/__tests__/near.test.ts`, `lib/__tests__/metadata.test.ts`, `lib/seo/__tests__/jsonld.test.ts`, `app/__tests__/sitemap.test.ts`, and the water page render test.
+
+**On verification — important caveat:** this sandbox blocked every `npm`/`tsc`/`eslint` invocation ("requires approval," consistently denied even on retry), so I could not actually run `npm run lint`, `npm test`, or `npm run build` myself. As a substitute, I had an independent agent read every changed file in full and manually verify TypeScript correctness, GraphQL field/resolver validity, gating-bypass tracing, and lint-relevant issues — it found nothing to fix. `git`/`gh` worked fine, so the commit, push, and PR creation went through normally. **Please run `npm run lint && npm test && npm run build` in `apps/web` before merging** — that's the one box I genuinely couldn't check myself.

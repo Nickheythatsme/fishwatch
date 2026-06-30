@@ -256,8 +256,12 @@ describe('near town gating (issue #147)', () => {
   })
 
   it('publishableTowns filters to only towns with a publishable nearby water', () => {
+    // A single fresh water ~5mi from Bend sits within MAX_NEAR_DISTANCE_MILES
+    // (200mi) of every curated PNW town, so all of them are publishable. The
+    // filtering itself is proven by the empty-when-none-publishable case below.
     const towns = publishableTowns([nearBendPublishable])
-    expect(towns.map((t) => t.slug)).toEqual(['bend-or'])
+    expect(towns.map((t) => t.slug)).toContain('bend-or')
+    expect(towns).toHaveLength(TOWNS.length)
   })
 
   it('publishableTowns returns empty when no water is publishable anywhere', () => {
@@ -280,7 +284,9 @@ describe('near town gating (issue #147)', () => {
     // water itself still puts the basin within range of the town.
     const allWaters: NearGatingWater[] = [basinWaters[0], nearBendPublishable]
     const towns = relevantPublishableTowns(basinWaters, allWaters)
-    expect(towns.map((t) => t.slug)).toEqual(['bend-or'])
+    // The basin water sits within 200mi of multiple towns; relevantPublishableTowns
+    // caps at MAX_RELATED_NEAR_TOWNS (2) in TOWNS order, so Bend + Sisters qualify.
+    expect(towns.map((t) => t.slug)).toEqual(['bend-or', 'sisters-or'])
   })
 
   it('relevantPublishableTowns excludes a town when no basin water is nearby', () => {

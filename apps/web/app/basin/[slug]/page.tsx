@@ -187,9 +187,13 @@ export default async function BasinPage({
 
   // graphql-js returns null-prototype objects; spread to plain objects so React
   // can serialize them across the Server→Client boundary to IntelligenceCard.
+  // NOTE: recentReports (added to BasinWater for #147 near-gating) is also a
+  // null-prototype array element — plainify it too, or the prerender serializer
+  // throws "null prototypes are not supported" on [{reportDate}].
   const waters: IntelligenceCardWaterBody[] = sortedWaters.map((w) => ({
     ...w,
     currentSignal: w.currentSignal ? { ...w.currentSignal } : null,
+    recentReports: w.recentReports.map((r) => ({ ...r })),
   }))
 
   // Gating-aware contextual links (issue #147): in-basin "Compare with…"
@@ -199,8 +203,8 @@ export default async function BasinPage({
     slug: w.slug,
     name: w.name,
     basin: { slug: basin.slug },
-    currentSignal: w.currentSignal,
-    recentReports: w.recentReports,
+    currentSignal: w.currentSignal ? { ...w.currentSignal } : null,
+    recentReports: w.recentReports.map((r) => ({ ...r })),
   }))
   const comparePairs = selectComparePairLinks(comparePairWaters, () => true, MAX_BASIN_COMPARE_LINKS)
 
