@@ -202,6 +202,17 @@ describe('buildItemList', () => {
       'Metolius River',
     ])
   })
+
+  it('uses a custom urlFor when provided (issue #147 — /near and /compare indexes)', () => {
+    const list = buildItemList(
+      [{ name: 'Bend, OR', slug: 'bend-or' }],
+      SITE_URL,
+      'Fishing Near You',
+      (entry) => `${SITE_URL}/near/${entry.slug}`
+    )
+    const items = list!.itemListElement as Array<{ url: string }>
+    expect(items[0].url).toBe('https://score.fish/near/bend-or')
+  })
 })
 
 describe('buildHomePageGraph', () => {

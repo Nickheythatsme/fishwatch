@@ -128,3 +128,26 @@ describe('sitemap /basin entries (issue #125)', () => {
     expect(entries.some((e) => e.url.includes('/basin/'))).toBe(false)
   })
 })
+
+// Regression test for issue #147: the /near and /compare hub pages are static,
+// always-publishable index pages, so they must always be present in the
+// sitemap — unlike the gated /near/[town] and /compare/[pair] leaves.
+describe('sitemap /near and /compare hub entries (issue #147)', () => {
+  beforeEach(() => {
+    ssrQueryMock.mockReset()
+  })
+
+  it('always includes the /near and /compare hub URLs, even with no waters', async () => {
+    ssrQueryMock.mockResolvedValue({ waterBodies: [] })
+    const entries = await sitemap()
+    expect(entries.some((e) => e.url === 'https://score.fish/near')).toBe(true)
+    expect(entries.some((e) => e.url === 'https://score.fish/compare')).toBe(true)
+  })
+
+  it('still includes the hub URLs when the data source is unreachable', async () => {
+    ssrQueryMock.mockRejectedValue(new Error('db down'))
+    const entries = await sitemap()
+    expect(entries.some((e) => e.url === 'https://score.fish/near')).toBe(true)
+    expect(entries.some((e) => e.url === 'https://score.fish/compare')).toBe(true)
+  })
+})

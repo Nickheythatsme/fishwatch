@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { haversineDistanceMiles } from '@/lib/near/haversine'
 import { rankWatersNear } from '@/lib/near/rank'
 import { TOWNS, MAX_NEAR_DISTANCE_MILES } from '@/lib/near/towns'
+import {
+  isTownPublishable,
+  publishableTowns,
+  nearestPublishableTown,
+  relevantPublishableTowns,
+  type NearGatingWater,
+} from '@/lib/near/gating'
 import { isPublishable } from '@/lib/seo/gating'
 
 const bend = TOWNS.find((t) => t.slug === 'bend-or')!
@@ -183,5 +190,108 @@ describe('near page gating', () => {
 
   it('MAX_NEAR_DISTANCE_MILES is 200', () => {
     expect(MAX_NEAR_DISTANCE_MILES).toBe(200)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// isTownPublishable / publishableTowns / nearestPublishableTown /
+// relevantPublishableTowns — town-level link gating for /near and contextual
+// blocks (issue #147). A town must never be linked unless its near page is
+// actually indexable.
+// ---------------------------------------------------------------------------
+
+describe('near town gating (issue #147)', () => {
+  const freshDate = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 3)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const staleDate = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const goodSignal = {
+    compositeScore: 7.5,
+    flowScore: 3.0 as number | null,
+    sentimentScore: 6.0 as number | null,
+    consensusScore: 5.0 as number | null,
+  }
+
+  const noDataSignal = {
+    compositeScore: 5.0,
+    flowScore: null as number | null,
+    sentimentScore: null as number | null,
+    consensusScore: null as number | null,
+  }
+
+  // ~5 miles from Bend.
+  const nearBendPublishable: NearGatingWater = {
+    latitude: 44.0582,
+    longitude: -121.25,
+    currentSignal: goodSignal,
+    recentReports: [{ reportDate: freshDate }],
+  }
+
+  it('isTownPublishable is true when a nearby water is publishable', () => {
+    expect(isTownPublishable(bend, [nearBendPublishable])).toBe(true)
+  })
+
+  it('isTownPublishable is false when the nearby water has a stale report', () => {
+    const stale: NearGatingWater = { ...nearBendPublishable, recentReports: [{ reportDate: staleDate }] }
+    expect(isTownPublishable(bend, [stale])).toBe(false)
+  })
+
+  it('isTownPublishable is false when the nearby water has a no-data signal', () => {
+    const noData: NearGatingWater = { ...nearBendPublishable, currentSignal: noDataSignal }
+    expect(isTownPublishable(bend, [noData])).toBe(false)
+  })
+
+  it('isTownPublishable is false when the only publishable water is out of range', () => {
+    // Miami is ~2700 miles from Bend.
+    const far: NearGatingWater = { ...nearBendPublishable, latitude: 25.7617, longitude: -80.1918 }
+    expect(isTownPublishable(bend, [far])).toBe(false)
+  })
+
+  it('publishableTowns filters to only towns with a publishable nearby water', () => {
+    const towns = publishableTowns([nearBendPublishable])
+    expect(towns.map((t) => t.slug)).toEqual(['bend-or'])
+  })
+
+  it('publishableTowns returns empty when no water is publishable anywhere', () => {
+    expect(publishableTowns([])).toHaveLength(0)
+  })
+
+  it('nearestPublishableTown returns the nearest curated town within range', () => {
+    const town = nearestPublishableTown(44.0582, -121.3153, [nearBendPublishable])
+    expect(town?.slug).toBe('bend-or')
+  })
+
+  it('nearestPublishableTown returns null when no town is both in range and publishable', () => {
+    expect(nearestPublishableTown(0, -160, [nearBendPublishable])).toBeNull()
+  })
+
+  it('relevantPublishableTowns requires both a basin water nearby AND global publishability', () => {
+    const basinWaters: NearGatingWater[] = [{ ...nearBendPublishable, currentSignal: noDataSignal }]
+    // The basin's own water isn't publishable, but a sibling elsewhere near
+    // Bend is — the town should still qualify (global gate), since the basin
+    // water itself still puts the basin within range of the town.
+    const allWaters: NearGatingWater[] = [basinWaters[0], nearBendPublishable]
+    const towns = relevantPublishableTowns(basinWaters, allWaters)
+    expect(towns.map((t) => t.slug)).toEqual(['bend-or'])
+  })
+
+  it('relevantPublishableTowns excludes a town when no basin water is nearby', () => {
+    const farBasinWater: NearGatingWater = { ...nearBendPublishable, latitude: 25.7617, longitude: -80.1918 }
+    const towns = relevantPublishableTowns([farBasinWater], [nearBendPublishable])
+    expect(towns).toHaveLength(0)
+  })
+
+  it('relevantPublishableTowns respects the limit', () => {
+    const basinWaters: NearGatingWater[] = [nearBendPublishable]
+    const towns = relevantPublishableTowns(basinWaters, [nearBendPublishable], 0)
+    expect(towns).toHaveLength(0)
   })
 })

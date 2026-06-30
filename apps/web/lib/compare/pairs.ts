@@ -1,3 +1,5 @@
+import { isPublishable, type GatingInput } from '@/lib/seo/gating'
+
 export interface PairSlug {
   slugA: string
   slugB: string
@@ -111,4 +113,59 @@ export function isPairCurated(
     const cm = canonicalPair(m.slugA, m.slugB)
     return cm.slugA === pair.slugA && cm.slugB === pair.slugB
   })
+}
+
+// ---------------------------------------------------------------------------
+// Gated, labeled link selection for contextual "Compare with…" blocks
+// (issue #147) — water and basin pages, and the /compare index.
+// ---------------------------------------------------------------------------
+
+/** Minimal water shape needed to curate, gate, and label compare-pair links. */
+export interface ComparePairLinkWater extends WaterWithBasin {
+  name: string
+  currentSignal: GatingInput['signal']
+  recentReports: Array<{ reportDate: string | null }>
+}
+
+export interface ComparePairLink {
+  slugA: string
+  slugB: string
+  nameA: string
+  nameB: string
+}
+
+/** Default cap for contextual "Compare with…" link blocks on water/basin pages. */
+export const DEFAULT_COMPARE_LINK_LIMIT = 4
+
+function isLinkWaterPublishable(w: ComparePairLinkWater): boolean {
+  return isPublishable({
+    signal: w.currentSignal,
+    latestReportDate: w.recentReports[0]?.reportDate ?? null,
+  })
+}
+
+/**
+ * Build gated, labeled compare-pair links from a water list: curate via
+ * `selectCuratedPairs`, keep only pairs `include` accepts, drop any pair where
+ * either water isn't `isPublishable` (issue #147 — never link a noindex
+ * compare page), and cap to `limit` (pass `Infinity` for no cap, e.g. the
+ * `/compare` index).
+ */
+export function selectComparePairLinks(
+  waters: ComparePairLinkWater[],
+  include: (pair: PairSlug) => boolean,
+  limit: number = DEFAULT_COMPARE_LINK_LIMIT
+): ComparePairLink[] {
+  const bySlug = new Map(waters.map((w) => [w.slug, w]))
+  const links: ComparePairLink[] = []
+  for (const pair of selectCuratedPairs(waters)) {
+    if (links.length >= limit) break
+    if (!include(pair)) continue
+    const a = bySlug.get(pair.slugA)
+    const b = bySlug.get(pair.slugB)
+    if (!a || !b) continue
+    if (!isLinkWaterPublishable(a) || !isLinkWaterPublishable(b)) continue
+    links.push({ slugA: pair.slugA, slugB: pair.slugB, nameA: a.name, nameB: b.name })
+  }
+  return links
 }

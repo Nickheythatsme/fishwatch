@@ -148,6 +148,12 @@ describe('water/[slug] page', () => {
     expect(html).toContain('1 source')
     expect(html).toMatch(/confidence/i)
 
+    // Gating regression (issue #147): with only one water in the fixture (no
+    // basin siblings, no marquee partner), no curated compare pair exists, so
+    // the "Compare with nearby waters" block must not render at all — never an
+    // empty/broken link block.
+    expect(html).not.toContain('Compare With Nearby Waters')
+
     // Gauge readings handed to the FlowChart client island must be plain objects.
     // graphql-js returns null-prototype objects, which would crash the Next.js
     // build's Server→Client serialization, so the page re-wraps them.
